@@ -13,10 +13,10 @@ target_link_libraries(tests
 
 if(BUILD_SHARED_LIBS)
     target_link_libraries(tests
-        PRIVATE LIB_NAME::shared)
+        PRIVATE ElderLISP::shared)
 else()
     target_link_libraries(tests
-        PRIVATE LIB_NAME::static)
+        PRIVATE ElderLISP::static)
 endif()
 
 string(CONCAT GCOVR_CALL
