@@ -58,7 +58,7 @@ if(BUILD_TESTING)
 endif()
 
 #---------------------------LIB_NAME-------------------------------------------
-add_subdirectory(lib)
+add_subdirectory(src)
 
 #---------------------------APP_NAME-------------------------------------------
 add_subdirectory(app)
