@@ -5,7 +5,7 @@ target_sources(tests
 
 set_target_properties(tests
     PROPERTIES
-        CXX_STANDARD 17
+        CXX_STANDARD 20
         CXX_STANDARD_REQUIRED TRUE)
 
 target_link_libraries(tests

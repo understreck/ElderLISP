@@ -10,7 +10,7 @@ endif()
 
 set_target_properties(ElderInterp
     PROPERTIES
-        CXX_STANDARD 17
+        CXX_STANDARD 20
         CXX_STANDARD_REQUIRED TRUE)
 
 if(CMAKE_BUILD_TYPE STREQUAL Release AND LTO)
