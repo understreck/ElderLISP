@@ -15,7 +15,8 @@ target_sources(ElderLISP
 target_include_directories(ElderLISP
     PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-target_link_libraries(ElderLISP)
+target_link_libraries(ElderLISP
+    PRIVATE ctre::ctre)
 
 set_target_properties(ElderLISP
     PROPERTIES

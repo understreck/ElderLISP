@@ -3,62 +3,29 @@
 
 #include <iterator>
 #include <sstream>
-#include <memory>
-#include <string_view>
 #include <variant>
-#include <functional>
-#include <iostream>
+#include <deque>
 
 struct Atom {
-    std::string const name;
-
-    auto inline print() const -> void
-    {
-        std::cout << "Atom: " << name << " ";
-    }
+    std::string name;
 };
 
-struct NIL {
-    auto static print() -> void
-    {
-        std::cout << "NIL ";
-    }
-};
+struct LPeren {};
 
-struct LPeren {
-    int const depth;
+struct RPeren {};
 
-    auto inline print() const -> void
-    {
-        std::cout << "LPeren: " << depth << " ";
-    }
-};
+struct NIL {};
 
-struct RPeren {
-    int const depth;
+using Token = std::variant<NIL, LPeren, RPeren, Atom>;
 
-    auto inline print() const -> void
-    {
-        std::cout << "RPeren: " << depth << " ";
-    }
-};
+auto
+nextToken(std::string::const_iterator input, std::string::const_iterator end)
+        -> std::tuple<Token, std::string::const_iterator>;
 
-using Token = std::variant<NIL, Atom, LPeren, RPeren>;
-
-auto inline nextToken(
-        std::tuple<std::string_view, int> const input,
-        int const depth) -> std::tuple<size_t, Token>
-{
-    auto&& [string, position] = input;
-
-    auto&& nextSpace = std::find_if(
-            std::begin(string) + position,
-            std::end(string),
-            [](auto c) { return c == ' '; });
-
-    if(nextSpace == std::end(string)) {
-        return {std::end(string) - std::begin(string), NIL{}};
-    }
-}
+auto
+tokenize(
+        std::string::const_iterator begin,
+        std::string::const_iterator end,
+        std::deque<Token> tokens) -> std::deque<Token>;
 
 #endif    // ELDERLISP_LEXER_HPP

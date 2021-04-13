@@ -57,6 +57,11 @@ if(BUILD_TESTING)
     endif()
 endif()
 
+#---------------------------CTRE-----------------------------------------------
+add_library(ctre::ctre IMPORTED INTERFACE)
+target_include_directories(ctre::ctre
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/extern/ctre/include)
+
 #---------------------------LIB_NAME-------------------------------------------
 add_subdirectory(src)
 
