@@ -1,31 +1,50 @@
 #ifndef ELDERLISP_LEXER_HPP
 #define ELDERLISP_LEXER_HPP
 
-#include <iterator>
-#include <sstream>
+#include <string>
 #include <variant>
 #include <deque>
 
-struct Atom {
-    std::string name;
-};
+namespace lexer {
 
 struct LPeren {};
 
 struct RPeren {};
 
-struct NIL {};
+struct Atom {
+    std::string name;
+};
 
-using Token = std::variant<NIL, LPeren, RPeren, Atom>;
+struct Equals {};
 
-auto
-nextToken(std::string::const_iterator input, std::string::const_iterator end)
-        -> std::tuple<Token, std::string::const_iterator>;
+struct First {};
 
+struct Rest {};
+
+struct Combine {};
+
+struct Condition {};
+
+struct Let {};
+
+struct Quote {};
+
+using Token = std::variant<
+        LPeren,
+        RPeren,
+        Atom,
+        Equals,
+        First,
+        Rest,
+        Combine,
+        Condition,
+        Let,
+        Quote>;
 auto
 tokenize(
         std::string::const_iterator begin,
         std::string::const_iterator end,
         std::deque<Token> tokens) -> std::deque<Token>;
+}    // namespace Lexer
 
 #endif    // ELDERLISP_LEXER_HPP

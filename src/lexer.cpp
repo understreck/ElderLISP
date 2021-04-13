@@ -4,34 +4,25 @@
 #include <ctre.hpp>
 #include <tuple>
 
+namespace lexer {
+
+namespace patterns {
 using namespace ctre::literals;
 
-using lPerenPattern = decltype("\\s*[(]"_ctre);
-using rPerenPattern = decltype("\\s*[)]"_ctre);
+using lPeren = decltype("\\s*[(]"_ctre);
+using rPeren = decltype("\\s*[)]"_ctre);
 
-using atomPattern = decltype("\\s*(\\w+)"_ctre);
+using atom   = decltype("\\s*(\\w+)"_ctre);
+using equals = decltype("\\s*[eq]"_ctre);
 
-auto
-nextToken(std::string::const_iterator input, std::string::const_iterator end)
-        -> std::tuple<Token, std::string::const_iterator>
-{
-    auto&& [token, it] = std::tuple{Token{NIL{}}, end};
+using first   = decltype("\\s*first"_ctre);
+using rest    = decltype("\\s*rest"_ctre);
+using combine = decltype("\\s*comb"_ctre);
 
-    if(auto match = lPerenPattern::starts_with(input, end)) {
-        token = LPeren{};
-        it    = input + match.size();
-    }
-    else if(auto match = rPerenPattern::starts_with(input, end)) {
-        token = RPeren{};
-        it    = input + match.size();
-    }
-    else if(auto match = atomPattern::starts_with(input, end)) {
-        token = Atom{match.get<1>().to_string()};
-        it    = input + match.size();
-    }
-
-    return {token, it};
-}
+using condition = decltype("\\s*if"_ctre);
+using let       = decltype("\\s*let"_ctre);
+using quote     = decltype("\\s*\""_ctre);
+}    // namespace patterns
 
 auto
 tokenize(
@@ -39,20 +30,57 @@ tokenize(
         std::string::const_iterator end,
         std::deque<Token> tokens) -> std::deque<Token>
 {
-    if(auto match = lPerenPattern::starts_with(begin, end)) {
+    if(auto match = patterns::lPeren::starts_with(begin, end)) {
         tokens.push_back(LPeren{});
         return tokenize(begin + match.size(), end, std::move(tokens));
     }
 
-    if(auto match = rPerenPattern::starts_with(begin, end)) {
+    if(auto match = patterns::rPeren::starts_with(begin, end)) {
         tokens.push_back(RPeren{});
         return tokenize(begin + match.size(), end, std::move(tokens));
     }
 
-    if(auto match = atomPattern::starts_with(begin, end)) {
+    if(auto match = patterns::atom::starts_with(begin, end)) {
         tokens.emplace_back(Atom{match.to_string()});
         return tokenize(begin + match.size(), end, std::move(tokens));
     }
 
+    if(auto match = patterns::equals::starts_with(begin, end)) {
+        tokens.push_back(Equals{});
+        return tokenize(begin + match.size(), end, std::move(tokens));
+    }
+
+    if(auto match = patterns::first::starts_with(begin, end)) {
+        tokens.push_back(First{});
+        return tokenize(begin + match.size(), end, std::move(tokens));
+    }
+
+    if(auto match = patterns::rest::starts_with(begin, end)) {
+        tokens.push_back(Rest{});
+        return tokenize(begin + match.size(), end, std::move(tokens));
+    }
+
+    if(auto match = patterns::combine::starts_with(begin, end)) {
+        tokens.push_back(Combine{});
+        return tokenize(begin + match.size(), end, std::move(tokens));
+    }
+
+    if(auto match = patterns::condition::starts_with(begin, end)) {
+        tokens.push_back(Condition{});
+        return tokenize(begin + match.size(), end, std::move(tokens));
+    }
+
+    if(auto match = patterns::let::starts_with(begin, end)) {
+        tokens.push_back(Let{});
+        return tokenize(begin + match.size(), end, std::move(tokens));
+    }
+
+    if(auto match = patterns::quote::starts_with(begin, end)) {
+        tokens.push_back(Quote{});
+        return tokenize(begin + match.size(), end, std::move(tokens));
+    }
+
     return tokens;
+}
+
 }
