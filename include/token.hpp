@@ -6,6 +6,8 @@
 
 namespace lexer {
 
+struct Whitespace{};
+
 struct LParen {};
 
 struct RParen {};
@@ -29,6 +31,7 @@ struct Let {};
 struct Quote {};
 
 using Token = std::variant<
+        Whitespace,
         LParen,
         RParen,
         Atom,

@@ -6,15 +6,15 @@
 using namespace lexer;
 
 auto
-print_token(LPeren const)
+print_token(LParen const)
 {
-    std::cout << '(';
+    std::cout << "LPAREN";
 }
 
 auto
-print_token(RPeren const)
+print_token(RParen const)
 {
-    std::cout << ')';
+    std::cout << "RPAREN";
 }
 
 auto
@@ -26,43 +26,48 @@ print_token(Atom const& atom)
 auto
 print_token(Equals const)
 {
-    std::cout << " eq ";
+    std::cout << "EQUALS";
 }
 
 auto
 print_token(First const)
 {
-    std::cout << " first ";
+    std::cout << "FIRST";
 }
 
 auto
 print_token(Rest const)
 {
-    std::cout << " rest ";
+    std::cout << "REST";
 }
 
 auto
 print_token(Combine const)
 {
-    std::cout << " comb ";
+    std::cout << "COMBINE";
 }
 
 auto
 print_token(Condition const)
 {
-    std::cout << " if ";
+    std::cout << "IF";
 }
 
 auto
 print_token(Let const)
 {
-    std::cout << " let ";
+    std::cout << "LET";
 }
 
 auto
 print_token(Quote const)
 {
-    std::cout << '\"';
+    std::cout << "QUOTE";
+}
+
+auto print_token(Whitespace)
+{
+    std::cout << " WHITESPACE ";
 }
 
 int
