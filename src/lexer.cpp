@@ -9,8 +9,8 @@ namespace lexer {
 namespace patterns {
 using namespace ctre::literals;
 
-using lPeren = decltype("\\s*[(]"_ctre);
-using rPeren = decltype("\\s*[)]"_ctre);
+using lParen = decltype("\\s*[(]"_ctre);
+using rParen = decltype("\\s*[)]"_ctre);
 
 using atom   = decltype("\\s*(\\w+)"_ctre);
 using equals = decltype("\\s*[eq]"_ctre);
@@ -30,13 +30,13 @@ tokenize(
         std::string::const_iterator end,
         std::deque<Token> tokens) -> std::deque<Token>
 {
-    if(auto match = patterns::lPeren::starts_with(begin, end)) {
-        tokens.push_back(LPeren{});
+    if(auto match = patterns::lParen::starts_with(begin, end)) {
+        tokens.push_back(LParen{});
         return tokenize(begin + match.size(), end, std::move(tokens));
     }
 
-    if(auto match = patterns::rPeren::starts_with(begin, end)) {
-        tokens.push_back(RPeren{});
+    if(auto match = patterns::rParen::starts_with(begin, end)) {
+        tokens.push_back(RParen{});
         return tokenize(begin + match.size(), end, std::move(tokens));
     }
 

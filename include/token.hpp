@@ -1,10 +1,10 @@
-#ifndef ELDERLISP_AST_HPP
-#define ELDERLISP_AST_HPP
+#ifndef ELDERLISP_TOKEN_HPP
+#define ELDERLISP_TOKEN_HPP
 
 #include <string>
 #include <variant>
 
-namespace token {
+namespace lexer {
 
 struct LParen {};
 
@@ -42,4 +42,4 @@ using Token = std::variant<
 
 }    // namespace token
 
-#endif    // ELDERLISP_AST_HPP
+#endif    // ELDERLISP_TOKEN_HPP
