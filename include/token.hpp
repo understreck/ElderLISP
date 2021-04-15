@@ -4,7 +4,7 @@
 #include <string>
 #include <variant>
 
-namespace lexer {
+namespace elderLISP {
 
 struct Whitespace{};
 

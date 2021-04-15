@@ -3,7 +3,7 @@
 #include <iostream>
 #include <variant>
 
-using namespace lexer;
+using namespace elderLISP;
 
 auto
 print_token(LParen const)

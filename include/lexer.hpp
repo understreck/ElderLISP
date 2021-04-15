@@ -7,7 +7,7 @@
 #include <variant>
 #include <deque>
 
-namespace lexer {
+namespace elderLISP {
 auto
 tokenize(
         std::string::const_iterator begin,

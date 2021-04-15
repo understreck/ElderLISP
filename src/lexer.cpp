@@ -8,7 +8,7 @@
 #include <variant>
 #include <algorithm>
 
-namespace lexer {
+namespace elderLISP {
 
 namespace {
     using namespace ctre::literals;
