@@ -6,43 +6,55 @@
 
 namespace elderLISP {
 
-struct Whitespace{};
+namespace token {
+    struct Whitespace {};
 
-struct LParen {};
+    struct StringLiteral {
+        std::string data;
+    };
 
-struct RParen {};
+    struct IntegerLiteral {
+        long long data;
+    };
 
-struct Atom {
-    std::string name;
-};
+    struct LParen {};
 
-struct Equals {};
+    struct RParen {};
 
-struct First {};
+    struct Atom {
+        std::string name;
+    };
 
-struct Rest {};
+    struct Equals {};
 
-struct Combine {};
+    struct First {};
 
-struct Condition {};
+    struct Rest {};
 
-struct Let {};
+    struct Combine {};
 
-struct Quote {};
+    struct Condition {};
 
-using Token = std::variant<
-        Whitespace,
-        LParen,
-        RParen,
-        Atom,
-        Equals,
-        First,
-        Rest,
-        Combine,
-        Condition,
-        Let,
-        Quote>;
+    struct Let {};
 
+    struct Quote {};
+
+    using Token = std::variant<
+            Whitespace,
+            StringLiteral,
+            IntegerLiteral,
+            LParen,
+            RParen,
+            Atom,
+            Equals,
+            First,
+            Rest,
+            Combine,
+            Condition,
+            Let,
+            Quote>;
 }    // namespace token
+
+}    // namespace elderLISP
 
 #endif    // ELDERLISP_TOKEN_HPP

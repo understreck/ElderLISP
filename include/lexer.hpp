@@ -12,7 +12,15 @@ auto
 tokenize(
         std::string::const_iterator begin,
         std::string::const_iterator end,
-        std::deque<Token> tokens) -> std::deque<Token>;
-}    // namespace Lexer
+        std::deque<token::Token>&& tokens) -> std::deque<token::Token>;
+
+inline auto
+tokenize(
+        std::string const& code,
+        std::deque<token::Token> tokens) -> std::deque<token::Token> {
+return tokenize(code.cbegin(), code.cend(), std::move(tokens));
+}
+
+}    // namespace elderLISP
 
 #endif    // ELDERLISP_LEXER_HPP

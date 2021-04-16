@@ -1,80 +1,118 @@
+#include "ast.hpp"
 #include "lexer.hpp"
+#include "parser.hpp"
 
 #include <iostream>
 #include <variant>
 
 using namespace elderLISP;
+using namespace token;
 
 auto
-print_token(LParen const)
+pretty_print(LParen const)
 {
-    std::cout << "LPAREN";
+    std::cout << "LPAREN ";
 }
 
 auto
-print_token(RParen const)
+pretty_print(RParen const)
 {
-    std::cout << "RPAREN";
+    std::cout << " RPAREN";
 }
 
 auto
-print_token(Atom const& atom)
+pretty_print(Atom const& atom)
 {
     std::cout << ' ' << atom.name << ' ';
 }
 
 auto
-print_token(Equals const)
+pretty_print(StringLiteral const& lit)
 {
-    std::cout << "EQUALS";
+    std::cout << " STRING:\"" << lit.data << "\" ";
 }
 
 auto
-print_token(First const)
+pretty_print(IntegerLiteral const& lit)
 {
-    std::cout << "FIRST";
+    std::cout << " INT:" << lit.data << ' ';
 }
 
 auto
-print_token(Rest const)
+pretty_print(Equals const)
 {
-    std::cout << "REST";
+    std::cout << " EQUALS ";
 }
 
 auto
-print_token(Combine const)
+pretty_print(First const)
 {
-    std::cout << "COMBINE";
+    std::cout << " FIRST ";
 }
 
 auto
-print_token(Condition const)
+pretty_print(Rest const)
 {
-    std::cout << "IF";
+    std::cout << " REST ";
 }
 
 auto
-print_token(Let const)
+pretty_print(Combine const)
 {
-    std::cout << "LET";
+    std::cout << " COMBINE ";
 }
 
 auto
-print_token(Quote const)
+pretty_print(Condition const)
 {
-    std::cout << "QUOTE";
+    std::cout << " IF ";
 }
 
-auto print_token(Whitespace)
+auto
+pretty_print(Let const)
+{
+    std::cout << " LET ";
+}
+
+auto
+pretty_print(Quote const)
+{
+    std::cout << " QUOTE ";
+}
+
+auto pretty_print(Whitespace)
 {
     std::cout << " WHITESPACE ";
+}
+
+auto
+pretty_print(Token const& token)
+{
+    auto constexpr prettyPrint = [](auto&& token) {
+        pretty_print(token);
+    };
+
+    std::visit(prettyPrint, token);
+}
+
+auto
+pretty_print(ast::List const& list) -> void
+{
+    auto constexpr prettyPrint = [](auto&& token) {
+        pretty_print(token);
+    };
+
+    std::cout << '\n';
+    for(auto&& element : list) {
+        std::visit(prettyPrint, element);
+    }
 }
 
 int
 main(int, char**)
 {
-    auto constexpr printToken = [](auto&& token) {
-        print_token(token);
+    auto constexpr prettyPrint = [](auto&& token) {
+        pretty_print(token);
     };
 
     std::ios_base::sync_with_stdio(false);
@@ -83,10 +121,19 @@ main(int, char**)
         auto in = std ::string{};
         std::getline(std::cin, in);
 
-        auto const&& ast = tokenize(in.cbegin(), in.cend(), {});
+        auto const&& tokens = tokenize(in, {});
 
-        std::for_each(ast.cbegin(), ast.cend(), [=](auto&& token) {
-            std::visit(printToken, token);
+        std::for_each(tokens.cbegin(), tokens.cend(), [=](auto&& token) {
+            std::visit(prettyPrint, token);
+        });
+
+        std::cout << std::endl;
+
+        auto const list = parser::parse(tokens);
+        std::cout << list.size() << '\n';
+
+        std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
+            std::visit(prettyPrint, token);
         });
 
         std::cout << std::endl;

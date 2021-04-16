@@ -1,4 +1,5 @@
 #include "lexer.hpp"
+#include "token.hpp"
 
 #include <ctre.hpp>
 
@@ -9,6 +10,7 @@
 #include <algorithm>
 
 namespace elderLISP {
+using namespace token;
 
 namespace {
     using namespace ctre::literals;
@@ -17,6 +19,9 @@ namespace {
 
     using lParen = decltype("[(]"_ctre);
     using rParen = decltype("[)]"_ctre);
+
+    using stringLiteral  = decltype("\"([^\"]*)\""_ctre);
+    using integerLiteral = decltype("\\d+"_ctre);
 
     using atom   = decltype("(\\w+)"_ctre);
     using equals = decltype("eq"_ctre);
@@ -27,7 +32,7 @@ namespace {
 
     using condition = decltype("if"_ctre);
     using let       = decltype("let"_ctre);
-    using quote     = decltype("\""_ctre);
+    using quote     = decltype("\'"_ctre);
 }    // namespace
 
 template<class PatternT, class TokenT>
@@ -47,6 +52,8 @@ auto constexpr patterns = make_pattern_array(
         Pattern<whitespace, Whitespace>{},
         Pattern<lParen, LParen>{},
         Pattern<rParen, RParen>{},
+        Pattern<stringLiteral, StringLiteral>{},
+        Pattern<integerLiteral, IntegerLiteral>{},
         Pattern<equals, Equals>{},
         Pattern<first, First>{},
         Pattern<rest, Rest>{},
@@ -84,6 +91,32 @@ match(Pattern<whitespace, Whitespace>,
 }
 
 auto
+match(Pattern<stringLiteral, StringLiteral>,
+      std::string::const_iterator begin,
+      std::string::const_iterator end) -> matchReturnT
+{
+    if(auto const match = stringLiteral::starts_with(begin, end)) {
+        return {begin + match.size(),
+                StringLiteral{match.get<1>().to_string()}};
+    }
+
+    return {begin, {}};
+}
+
+auto
+match(Pattern<integerLiteral, IntegerLiteral>,
+      std::string::const_iterator begin,
+      std::string::const_iterator end) -> matchReturnT
+{
+    if(auto const match = integerLiteral::starts_with(begin, end)) {
+        return {begin + match.size(),
+                IntegerLiteral{std::stoi(match.to_string())}};
+    }
+
+    return {begin, {}};
+}
+
+auto
 match(Pattern<atom, Atom>,
       std::string::const_iterator begin,
       std::string::const_iterator end) -> matchReturnT
@@ -99,7 +132,7 @@ auto
 tokenize(
         std::string::const_iterator begin,
         std::string::const_iterator end,
-        std::deque<Token> tokens) -> std::deque<Token>
+        std::deque<Token>&& tokens) -> std::deque<Token>
 {
     std::vector<matchReturnT> matches{};
 
@@ -131,7 +164,7 @@ tokenize(
         return tokenize(newPos, end, std::move(tokens));
     }
 
-    return tokens;
+    return std::move(tokens);
 }
 
-}    // namespace lexer
+}    // namespace elderLISP
