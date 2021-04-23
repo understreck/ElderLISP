@@ -21,7 +21,7 @@ namespace token {
 
     struct RParen {};
 
-    struct Atom {
+    struct Name {
         std::string name;
     };
 
@@ -37,6 +37,8 @@ namespace token {
 
     struct Let {};
 
+    struct Lambda {};
+
     struct Quote {};
 
     using Token = std::variant<
@@ -45,12 +47,13 @@ namespace token {
             IntegerLiteral,
             LParen,
             RParen,
-            Atom,
+            Name,
             Equals,
             First,
             Rest,
             Combine,
             Condition,
+            Lambda,
             Let,
             Quote>;
 }    // namespace token

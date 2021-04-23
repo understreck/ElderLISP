@@ -23,7 +23,7 @@ namespace {
     using stringLiteral  = decltype("\"([^\"]*)\""_ctre);
     using integerLiteral = decltype("\\d+"_ctre);
 
-    using atom   = decltype("(\\w+)"_ctre);
+    using name   = decltype("(\\w+)"_ctre);
     using equals = decltype("eq"_ctre);
 
     using first   = decltype("first"_ctre);
@@ -32,6 +32,7 @@ namespace {
 
     using condition = decltype("if"_ctre);
     using let       = decltype("let"_ctre);
+    using lambda    = decltype("y"_ctre);
     using quote     = decltype("\'"_ctre);
 }    // namespace
 
@@ -59,8 +60,9 @@ auto constexpr patterns = make_pattern_array(
         Pattern<rest, Rest>{},
         Pattern<combine, Combine>{},
         Pattern<let, Let>{},
+        Pattern<lambda, Lambda>{},
         Pattern<quote, Quote>{},
-        Pattern<atom, Atom>{});
+        Pattern<name, Name>{});
 
 using matchReturnT =
         std::tuple<std::string::const_iterator, std::optional<Token>>;
@@ -117,12 +119,12 @@ match(Pattern<integerLiteral, IntegerLiteral>,
 }
 
 auto
-match(Pattern<atom, Atom>,
+match(Pattern<name, Name>,
       std::string::const_iterator begin,
       std::string::const_iterator end) -> matchReturnT
 {
-    if(auto const match = atom::starts_with(begin, end)) {
-        return {begin + match.size(), Atom{match.to_string()}};
+    if(auto const match = name::starts_with(begin, end)) {
+        return {begin + match.size(), Name{match.to_string()}};
     }
 
     return {begin, {}};

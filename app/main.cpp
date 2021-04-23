@@ -21,7 +21,7 @@ pretty_print(RParen const)
 }
 
 auto
-pretty_print(Atom const& atom)
+pretty_print(Name const& atom)
 {
     std::cout << ' ' << atom.name << ' ';
 }

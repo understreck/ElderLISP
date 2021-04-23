@@ -9,7 +9,30 @@
 namespace elderLISP {
 
 namespace ast {
-    struct List : public std::vector<std::variant<List, token::Token>> {};
+    struct Equal {};
+    struct First {};
+    struct Rest {};
+    struct Combine {};
+    struct Condition {};
+    struct Let {};
+    struct Quote {};
+    struct Lambda {};
+    struct Name {
+        std::string name;
+    };
+
+    using Atom = std::variant<
+            Equal,
+            First,
+            Rest,
+            Combine,
+            Condition,
+            Let,
+            Quote,
+            Lambda,
+            Name>;
+
+    struct List : public std::vector<std::variant<List, Atom>> {};
 }    // namespace ast
 
 }    // namespace elderLISP

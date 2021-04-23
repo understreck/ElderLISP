@@ -2,12 +2,11 @@
 #define ELDERLISP_INTERPRETER_HPP
 
 #include "ast.hpp"
-#include "interpreter-memory.hpp"
 
 namespace elderLISP {
 
 auto
-interpret(ast::List program, Memory memory = {}) -> Memory;
+interpret(ast::List program, ast::List memory = {}) -> ast::List;
 
 }    // namespace elderLISP
 

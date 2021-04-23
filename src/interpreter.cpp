@@ -1,6 +1,5 @@
 #include "interpreter.hpp"
 #include "ast.hpp"
-#include "interpreter-memory.hpp"
 
 namespace elderLISP {
 
@@ -32,7 +31,7 @@ interpret(ast::List const& program, ast::List const cell, Memory memory)
 };
 
 auto
-interpret(ast::List program, Memory memory) -> Memory
+interpret(ast::List program, ast::List memory) -> ast::List
 {
     return interpret(program, 0, std::move(memory));
 }
