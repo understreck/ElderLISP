@@ -1,6 +1,4 @@
-#include "ast.hpp"
 #include "lexer.hpp"
-#include "parser.hpp"
 
 #include <iostream>
 #include <variant>
@@ -18,6 +16,12 @@ auto
 pretty_print(RParen const)
 {
     std::cout << " RPAREN";
+}
+
+auto
+pretty_print(Lambda const)
+{
+    std::cout << " LAMBDA ";
 }
 
 auto
@@ -80,33 +84,18 @@ pretty_print(Quote const)
     std::cout << " QUOTE ";
 }
 
-auto pretty_print(Whitespace)
-{
-    std::cout << " WHITESPACE ";
-}
+// auto
+// pretty_print(ast::List const& list) -> void
+//{
+// auto constexpr prettyPrint = [](auto&& token) {
+// pretty_print(token);
+//};
 
-auto
-pretty_print(Token const& token)
-{
-    auto constexpr prettyPrint = [](auto&& token) {
-        pretty_print(token);
-    };
-
-    std::visit(prettyPrint, token);
-}
-
-auto
-pretty_print(ast::List const& list) -> void
-{
-    auto constexpr prettyPrint = [](auto&& token) {
-        pretty_print(token);
-    };
-
-    std::cout << '\n';
-    for(auto&& element : list) {
-        std::visit(prettyPrint, element);
-    }
-}
+// std::cout << '\n';
+// for(auto&& element : list) {
+// std::visit(prettyPrint, element);
+//}
+//}
 
 int
 main(int, char**)
@@ -129,12 +118,12 @@ main(int, char**)
 
         std::cout << std::endl;
 
-        auto const list = parser::parse(tokens);
-        std::cout << list.size() << '\n';
+        // auto const list = parser::parse(tokens);
+        // std::cout << list.size() << '\n';
 
-        std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
-            std::visit(prettyPrint, token);
-        });
+        // std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
+        // std::visit(prettyPrint, token);
+        //});
 
         std::cout << std::endl;
     }

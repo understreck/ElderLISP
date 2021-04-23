@@ -7,8 +7,6 @@
 namespace elderLISP {
 
 namespace token {
-    struct Whitespace {};
-
     struct StringLiteral {
         std::string data;
     };
@@ -42,7 +40,6 @@ namespace token {
     struct Quote {};
 
     using Token = std::variant<
-            Whitespace,
             StringLiteral,
             IntegerLiteral,
             LParen,

@@ -32,7 +32,7 @@ namespace {
 
     using condition = decltype("if"_ctre);
     using let       = decltype("let"_ctre);
-    using lambda    = decltype("y"_ctre);
+    using lambda    = decltype("lambda"_ctre);
     using quote     = decltype("\'"_ctre);
 }    // namespace
 
@@ -50,7 +50,6 @@ auto constexpr make_pattern_array(Patterns... patterns)
 }
 
 auto constexpr patterns = make_pattern_array(
-        Pattern<whitespace, Whitespace>{},
         Pattern<lParen, LParen>{},
         Pattern<rParen, RParen>{},
         Pattern<stringLiteral, StringLiteral>{},
@@ -75,18 +74,6 @@ match(Pattern<PatternT, TokenT>,
 {
     if(auto const match = PatternT::starts_with(begin, end)) {
         return {begin + match.size(), TokenT{}};
-    }
-
-    return {begin, {}};
-}
-
-auto
-match(Pattern<whitespace, Whitespace>,
-      std::string::const_iterator begin,
-      std::string::const_iterator end) -> matchReturnT
-{
-    if(auto const match = whitespace::starts_with(begin, end)) {
-        return {begin + match.size(), {}};
     }
 
     return {begin, {}};
@@ -138,9 +125,13 @@ tokenize(
 {
     std::vector<matchReturnT> matches{};
 
+    auto const ws = whitespace::starts_with(begin, end);
+
     for(auto&& pattern : patterns) {
         auto&& result = std::visit(
-                [&](auto&& pattern) { return match(pattern, begin, end); },
+                [&](auto&& pattern) {
+                    return match(pattern, begin + ws.size(), end);
+                },
                 pattern);
 
         auto&& [newPos, token] = result;
