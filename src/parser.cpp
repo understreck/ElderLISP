@@ -1,5 +1,8 @@
 #include "parser.hpp"
 
+#include "token.hpp"
+#include "ast.hpp"
+
 #include <iostream>
 #include <tuple>
 
@@ -8,6 +11,11 @@ namespace elderLISP {
 namespace parser {
 
     using TokenIt = std::deque<token::Token>::const_iterator;
+
+    auto
+    parse(TokenIt position, token::LParen) -> std::tuple<size_t, ast::List>{
+        
+    }
 
     auto
     parse(TokenIt position, TokenIt sentinel, ast::List ast) -> ast::List

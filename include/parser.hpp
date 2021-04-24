@@ -2,6 +2,7 @@
 #define ELDERLISP_PARSER_HPP
 
 #include "ast.hpp"
+#include "token.hpp"
 
 #include <deque>
 

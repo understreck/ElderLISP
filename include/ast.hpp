@@ -1,10 +1,9 @@
 #ifndef ELDERLISP_AST_HPP
 #define ELDERLISP_AST_HPP
 
-#include "token.hpp"
-
 #include <vector>
-#include <memory>
+#include <string>
+#include <variant>
 
 namespace elderLISP {
 
