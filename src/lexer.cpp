@@ -54,7 +54,7 @@ auto constexpr patterns = make_pattern_array(
         Pattern<rParen, RParen>{},
         Pattern<stringLiteral, StringLiteral>{},
         Pattern<integerLiteral, IntegerLiteral>{},
-        Pattern<equals, Equals>{},
+        Pattern<equals, Equal>{},
         Pattern<first, First>{},
         Pattern<rest, Rest>{},
         Pattern<combine, Combine>{},

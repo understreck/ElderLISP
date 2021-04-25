@@ -10,33 +10,21 @@ namespace token {
     struct StringLiteral {
         std::string data;
     };
-
     struct IntegerLiteral {
         long long data;
     };
-
-    struct LParen {};
-
-    struct RParen {};
-
     struct Name {
         std::string name;
     };
-
-    struct Equals {};
-
+    struct LParen {};
+    struct RParen {};
+    struct Equal {};
     struct First {};
-
     struct Rest {};
-
     struct Combine {};
-
     struct Condition {};
-
     struct Let {};
-
     struct Lambda {};
-
     struct Quote {};
 
     using Token = std::variant<
@@ -45,7 +33,7 @@ namespace token {
             LParen,
             RParen,
             Name,
-            Equals,
+            Equal,
             First,
             Rest,
             Combine,

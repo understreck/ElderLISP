@@ -8,6 +8,12 @@
 namespace elderLISP {
 
 namespace ast {
+    struct StringLiteral {
+        std::string data;
+    };
+    struct IntegerLiteral {
+        long long data;
+    };
     struct Equal {};
     struct First {};
     struct Rest {};
@@ -21,6 +27,8 @@ namespace ast {
     };
 
     using Atom = std::variant<
+            StringLiteral,
+            IntegerLiteral,
             Equal,
             First,
             Rest,

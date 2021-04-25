@@ -1,22 +1,11 @@
 #include "lexer.hpp"
+#include "parser.hpp"
 
 #include <iostream>
 #include <variant>
 
 using namespace elderLISP;
-using namespace token;
-
-auto
-pretty_print(LParen const)
-{
-    std::cout << "LPAREN ";
-}
-
-auto
-pretty_print(RParen const)
-{
-    std::cout << " RPAREN";
-}
+using namespace ast;
 
 auto
 pretty_print(Lambda const)
@@ -27,7 +16,7 @@ pretty_print(Lambda const)
 auto
 pretty_print(Name const& atom)
 {
-    std::cout << ' ' << atom.name << ' ';
+    std::cout << " NAME:" << atom.name << ' ';
 }
 
 auto
@@ -43,7 +32,7 @@ pretty_print(IntegerLiteral const& lit)
 }
 
 auto
-pretty_print(Equals const)
+pretty_print(Equal const)
 {
     std::cout << " EQUALS ";
 }
@@ -84,18 +73,37 @@ pretty_print(Quote const)
     std::cout << " QUOTE ";
 }
 
-// auto
-// pretty_print(ast::List const& list) -> void
-//{
-// auto constexpr prettyPrint = [](auto&& token) {
-// pretty_print(token);
-//};
+auto
+pretty_print(ast::Atom atom) -> void
+{
+    auto constexpr prettyPrint = [](auto&& atom) {
+        pretty_print(atom);
+    };
 
-// std::cout << '\n';
-// for(auto&& element : list) {
-// std::visit(prettyPrint, element);
-//}
-//}
+    std::visit(prettyPrint, atom);
+}
+
+auto
+pretty_print(ast::List const& list) -> void
+{
+    auto constexpr prettyPrint = [](auto&& token) {
+        pretty_print(token);
+    };
+
+    static auto indent{0};
+    indent++;
+    std::cout << '\n';
+
+    for(auto i = 0; i < indent; i++) {
+        std::cout << '\t';
+    }
+
+    for(auto&& element : list) {
+        std::visit(prettyPrint, element);
+    }
+
+    indent--;
+}
 
 int
 main(int, char**)
@@ -112,18 +120,18 @@ main(int, char**)
 
         auto const&& tokens = tokenize(in, {});
 
-        std::for_each(tokens.cbegin(), tokens.cend(), [=](auto&& token) {
-            std::visit(prettyPrint, token);
-        });
-
-        std::cout << std::endl;
-
-        // auto const list = parser::parse(tokens);
-        // std::cout << list.size() << '\n';
-
-        // std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
+        // std::for_each(tokens.cbegin(), tokens.cend(), [=](auto&& token) {
         // std::visit(prettyPrint, token);
         //});
+
+        // std::cout << std::endl;
+
+        auto const list = parser::parse(tokens);
+        std::cout << list.size() << '\n';
+
+        std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
+            std::visit(prettyPrint, token);
+        });
 
         std::cout << std::endl;
     }
