@@ -1,7 +1,7 @@
 #ifndef ELDERLISP_AST_HPP
 #define ELDERLISP_AST_HPP
 
-#include <vector>
+#include <deque>
 #include <string>
 #include <variant>
 
@@ -39,7 +39,9 @@ namespace ast {
             Lambda,
             Name>;
 
-    struct List : public std::vector<std::variant<List, Atom>> {};
+    struct List : public std::deque<std::variant<List, Atom>> {};
+
+    using Node = std::variant<List, Atom>;
 }    // namespace ast
 
 }    // namespace elderLISP

@@ -1,3 +1,5 @@
+#include <variant>
+
 namespace elderLISP {
 namespace meta {
 
@@ -27,5 +29,13 @@ namespace meta {
 
     template<class T, class Variant>
     auto constexpr variantIndex = VariantIndex<T, Variant>::value;
+
+    template<class... Fs>
+    struct Overload : Fs... {
+        using Fs::operator()...;
+    };
+
+    template<class... Fs>
+    Overload(Fs...) -> Overload<Fs...>;
 }    // namespace meta
 }    // namespace elderLISP

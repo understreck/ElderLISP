@@ -1,3 +1,4 @@
+#include "interpreter.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
 
@@ -114,6 +115,8 @@ main(int, char**)
 
     std::ios_base::sync_with_stdio(false);
 
+
+    auto env = interpreter::Environment{{}};
     while(true) {
         auto in = std ::string{};
         std::getline(std::cin, in);
@@ -129,9 +132,13 @@ main(int, char**)
         auto const list = parser::parse(tokens);
         std::cout << list.size() << '\n';
 
-        std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
-            std::visit(prettyPrint, token);
-        });
+        //std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
+            //std::visit(prettyPrint, token);
+        //});
+        std::cout << std::endl;
+        auto node = interpreter::interpret(list, env);
+
+        std::visit(prettyPrint, node);
 
         std::cout << std::endl;
     }

@@ -12,10 +12,10 @@ namespace elderLISP {
 namespace interpreter {
     using Environment = std::deque<std::unordered_map<
             std::string,
-            std::variant<ast::List, ast::Atom>>>;
+            ast::Node>>;
 
     auto
-    interpret(ast::List program, Environment environment) -> Environment;
+    interpret(ast::List const& expression, Environment& environment) -> ast::Node;
 }    // namespace interpreter
 }    // namespace elderLISP
 
