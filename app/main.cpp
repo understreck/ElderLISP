@@ -69,6 +69,24 @@ pretty_print(Let const)
 }
 
 auto
+pretty_print(True const)
+{
+    std::cout << " TRUE ";
+}
+
+auto
+pretty_print(False const)
+{
+    std::cout << " FALSE ";
+}
+
+auto
+pretty_print(Atomic const)
+{
+    std::cout << " ATOMIC ";
+}
+
+auto
 pretty_print(Quote const)
 {
     std::cout << " QUOTE ";

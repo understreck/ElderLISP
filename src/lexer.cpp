@@ -26,6 +26,10 @@ namespace {
     using name   = decltype("(\\w+)"_ctre);
     using equals = decltype("eq"_ctre);
 
+    using truePattern  = decltype("true"_ctre);
+    using falsePattern = decltype("false"_ctre);
+    using atomic       = decltype("atom"_ctre);
+
     using first   = decltype("first"_ctre);
     using rest    = decltype("rest"_ctre);
     using combine = decltype("comb"_ctre);
@@ -54,6 +58,9 @@ auto constexpr patterns = make_pattern_array(
         Pattern<rParen, RParen>{},
         Pattern<stringLiteral, StringLiteral>{},
         Pattern<integerLiteral, IntegerLiteral>{},
+        Pattern<truePattern, True>{},
+        Pattern<falsePattern, False>{},
+        Pattern<atomic, Atomic>{},
         Pattern<equals, Equal>{},
         Pattern<first, First>{},
         Pattern<rest, Rest>{},

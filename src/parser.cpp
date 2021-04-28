@@ -58,6 +58,18 @@ namespace parser {
                 ast.push_back(ast::Name{std::get<nameIndex>(*position).name});
             } break;
 
+            case tokenIndex<token::True>: {
+                ast.push_back(ast::True{});
+            } break;
+
+            case tokenIndex<token::False>: {
+                ast.push_back(ast::False{});
+            } break;
+
+            case tokenIndex<token::Atomic>: {
+                ast.push_back(ast::Atomic{});
+            } break;
+
             case tokenIndex<token::Equal>: {
                 ast.push_back(ast::Equal{});
             } break;

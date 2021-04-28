@@ -18,6 +18,9 @@ namespace token {
     };
     struct LParen {};
     struct RParen {};
+    struct True {};
+    struct False {};
+    struct Atomic {};
     struct Equal {};
     struct First {};
     struct Rest {};
@@ -32,6 +35,9 @@ namespace token {
             IntegerLiteral,
             LParen,
             RParen,
+            True,
+            False,
+            Atomic,
             Name,
             Equal,
             First,

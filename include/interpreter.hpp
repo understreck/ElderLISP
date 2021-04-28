@@ -3,19 +3,39 @@
 
 #include "ast.hpp"
 
-#include <deque>
+#include <vector>
 #include <string>
 #include <unordered_map>
 
 namespace elderLISP {
 
 namespace interpreter {
-    using Environment = std::deque<std::unordered_map<
-            std::string,
-            ast::Node>>;
+    using Environment = std::vector<std::unordered_map<std::string, ast::Node>>;
+
+    struct Scope {
+        Scope(Environment& env) : environment{env}
+        {
+            environment.push_back({});
+        }
+
+        Scope(Scope const&) = delete;
+        Scope(Scope&&)      = delete;
+
+        auto operator=(Scope) = delete;
+        auto
+        operator=(Scope&&) = delete;
+
+        ~Scope()
+        {
+            environment.pop_back();
+        }
+
+        Environment& environment;
+    };
 
     auto
-    interpret(ast::List const& expression, Environment& environment) -> ast::Node;
+    interpret(ast::List expression, Environment& environment)
+            -> ast::Node;
 }    // namespace interpreter
 }    // namespace elderLISP
 

@@ -1,7 +1,7 @@
 #ifndef ELDERLISP_AST_HPP
 #define ELDERLISP_AST_HPP
 
-#include <deque>
+#include <vector>
 #include <string>
 #include <variant>
 
@@ -15,6 +15,9 @@ namespace ast {
         long long data;
     };
     struct Equal {};
+    struct True {};
+    struct False{};
+    struct Atomic {};
     struct First {};
     struct Rest {};
     struct Combine {};
@@ -29,6 +32,9 @@ namespace ast {
     using Atom = std::variant<
             StringLiteral,
             IntegerLiteral,
+            True,
+            False,
+            Atomic,
             Equal,
             First,
             Rest,
@@ -39,7 +45,7 @@ namespace ast {
             Lambda,
             Name>;
 
-    struct List : public std::deque<std::variant<List, Atom>> {};
+    struct List : public std::vector<std::variant<List, Atom>> {};
 
     using Node = std::variant<List, Atom>;
 }    // namespace ast
