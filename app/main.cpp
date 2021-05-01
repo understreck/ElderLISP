@@ -59,7 +59,7 @@ pretty_print(Combine const)
 auto
 pretty_print(Condition const)
 {
-    std::cout << " IF ";
+    std::cout << " COND ";
 }
 
 auto
@@ -78,6 +78,12 @@ auto
 pretty_print(False const)
 {
     std::cout << " FALSE ";
+}
+
+auto
+pretty_print(NIL const)
+{
+    std::cout << " NIL ";
 }
 
 auto
@@ -133,7 +139,6 @@ main(int, char**)
 
     std::ios_base::sync_with_stdio(false);
 
-
     auto env = interpreter::Environment{{}};
     while(true) {
         auto in = std ::string{};
@@ -150,8 +155,8 @@ main(int, char**)
         auto const list = parser::parse(tokens);
         std::cout << list.size() << '\n';
 
-        //std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
-            //std::visit(prettyPrint, token);
+        // std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
+        // std::visit(prettyPrint, token);
         //});
         std::cout << std::endl;
         auto node = interpreter::interpret(list, env);

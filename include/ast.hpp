@@ -16,7 +16,7 @@ namespace ast {
     };
     struct Equal {};
     struct True {};
-    struct False{};
+    struct False {};
     struct Atomic {};
     struct First {};
     struct Rest {};
@@ -25,11 +25,13 @@ namespace ast {
     struct Let {};
     struct Quote {};
     struct Lambda {};
+    struct NIL {};
     struct Name {
         std::string name;
     };
 
     using Atom = std::variant<
+            NIL,
             StringLiteral,
             IntegerLiteral,
             True,

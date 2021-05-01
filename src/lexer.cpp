@@ -34,7 +34,7 @@ namespace {
     using rest    = decltype("rest"_ctre);
     using combine = decltype("comb"_ctre);
 
-    using condition = decltype("if"_ctre);
+    using condition = decltype("cond"_ctre);
     using let       = decltype("let"_ctre);
     using lambda    = decltype("lambda"_ctre);
     using quote     = decltype("\'"_ctre);
@@ -65,6 +65,7 @@ auto constexpr patterns = make_pattern_array(
         Pattern<first, First>{},
         Pattern<rest, Rest>{},
         Pattern<combine, Combine>{},
+        Pattern<condition, Condition>{},
         Pattern<let, Let>{},
         Pattern<lambda, Lambda>{},
         Pattern<quote, Quote>{},
