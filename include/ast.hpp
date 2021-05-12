@@ -8,15 +8,17 @@
 namespace elderLISP {
 
 namespace ast {
-    struct StringLiteral {
+    struct String {
         std::string data;
     };
-    struct IntegerLiteral {
+    struct Integer {
         long long data;
     };
-    struct Equal {};
     struct True {};
     struct False {};
+    struct NIL {};
+
+    struct Equal {};
     struct Atomic {};
     struct First {};
     struct Rest {};
@@ -25,31 +27,29 @@ namespace ast {
     struct Let {};
     struct Quote {};
     struct Lambda {};
-    struct NIL {};
-    struct Name {
+
+    struct Symbol {
         std::string name;
     };
 
-    using Atom = std::variant<
-            NIL,
-            StringLiteral,
-            IntegerLiteral,
-            True,
-            False,
-            Atomic,
+    using Value    = std::variant<String, Integer, True, False, NIL>;
+    using Function = std::variant<
             Equal,
+            Atomic,
             First,
             Rest,
             Combine,
             Condition,
             Let,
             Quote,
-            Lambda,
-            Name>;
+            Lambda>;
 
-    struct List : public std::vector<std::variant<List, Atom>> {};
+    using BuiltIn = std::variant<Value, Function, Symbol>;
 
-    using Node = std::variant<List, Atom>;
+    struct List;
+    using Node = std::variant<List, BuiltIn>;
+
+    struct List : public std::vector<Node> {};
 }    // namespace ast
 
 }    // namespace elderLISP
