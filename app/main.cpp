@@ -173,13 +173,14 @@ main(int, char**)
         auto const list = parser::parse(tokens);
         std::cout << list.size() << '\n';
 
-        std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
-            std::visit(prettyPrint, token);
-        });
+        // std::for_each(list.cbegin(), list.cend(), [=](auto&& token) {
+        // std::visit(prettyPrint, token);
+        //});
         std::cout << std::endl;
-        // auto node = interpreter::interpret(list, env);
+        auto [node, newEnv] = interpreter::interpret(list, env);
+        env                 = newEnv;
 
-        // std::visit(prettyPrint, node);
+        std::visit(prettyPrint, node);
 
         std::cout << std::endl;
     }
