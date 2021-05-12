@@ -2,40 +2,15 @@
 #define ELDERLISP_INTERPRETER_HPP
 
 #include "ast.hpp"
+#include "environment.hpp"
 
-#include <vector>
-#include <string>
-#include <unordered_map>
+#include <tuple>
 
 namespace elderLISP {
-
 namespace interpreter {
-    using Environment = std::vector<std::unordered_map<std::string, ast::Node>>;
-
-    struct Scope {
-        Scope(Environment& env) : environment{env}
-        {
-            environment.push_back({});
-        }
-
-        Scope(Scope const&) = delete;
-        Scope(Scope&&)      = delete;
-
-        auto operator=(Scope) = delete;
-        auto
-        operator=(Scope&&) = delete;
-
-        ~Scope()
-        {
-            environment.pop_back();
-        }
-
-        Environment& environment;
-    };
-
     auto
-    interpret(ast::List expression, Environment& environment)
-            -> ast::Node;
+    interpret(ast::Node expr, Environment env = Environment{})
+            -> std::tuple<ast::Node, Environment>;
 }    // namespace interpreter
 }    // namespace elderLISP
 
