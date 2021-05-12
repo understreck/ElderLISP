@@ -40,22 +40,22 @@ namespace parser {
                 auto constexpr stringLitIndex =
                         tokenIndex<token::StringLiteral>;
 
-                ast.push_back(ast::StringLiteral{
-                        std::get<stringLitIndex>(*position).data});
+                ast.push_back({ast::String{
+                        std::get<stringLitIndex>(*position).data}});
             } break;
 
             case tokenIndex<token::IntegerLiteral>: {
                 auto constexpr integerLitIndex =
                         tokenIndex<token::IntegerLiteral>;
 
-                ast.push_back(ast::IntegerLiteral{
-                        std::get<integerLitIndex>(*position).data});
+                ast.push_back({ast::Integer{
+                        std::get<integerLitIndex>(*position).data}});
             } break;
 
             case tokenIndex<token::Name>: {
                 auto constexpr nameIndex = tokenIndex<token::Name>;
 
-                ast.push_back(ast::Name{std::get<nameIndex>(*position).name});
+                ast.push_back(ast::Symbol{std::get<nameIndex>(*position).name});
             } break;
 
             case tokenIndex<token::True>: {
