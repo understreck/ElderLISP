@@ -48,6 +48,21 @@ namespace interpreter {
     interpretList(ast::List expr, Environment env)
             -> std::tuple<ast::Node, Environment>
     {
+        if(isAtomic(expr[0])) {
+            if(std::holds_alternative<ast::List>(expr[0])) {
+                return {expr, env};
+            }
+
+            auto builtIn = std::get<nodeIndex<ast::BuiltIn>>(expr[0]);
+
+            if(std::holds_alternative<ast::Value>(builtIn)) {
+                return {expr, env};
+            }
+
+            if(std::holds_alternative<ast::Function>(builtIn)){
+                interpretFunction(expr, env);
+            }
+        }
 
         return {ast::NIL{}, env};
     }

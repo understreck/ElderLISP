@@ -2,6 +2,8 @@
 #define ELDERLISP_AST_HPP
 
 #include <vector>
+#include <memory>
+#include <map>
 #include <string>
 #include <variant>
 
@@ -50,6 +52,19 @@ namespace ast {
     using Node = std::variant<List, BuiltIn>;
 
     struct List : public std::vector<Node> {};
+
+    struct Environment {
+        using SharedEnv = std::shared_ptr<Environment>;
+        using Storage =
+                std::map<std::string, std::tuple<ast::Node, Environment>>;
+
+        SharedEnv outer;
+        Storage data;
+    };
+
+    struct LambdaClosure {
+        
+    };
 }    // namespace ast
 
 }    // namespace elderLISP
