@@ -79,16 +79,24 @@ auto constexpr rest(List<T, Us...> l)
     return std::get<1>(l);
 }
 
-auto constexpr cons(atom_or_list auto t, atom_or_list auto u)
+template<atom_or_list LHS, atom_or_list RHS>
+auto constexpr cons(LHS lhs, RHS rhs)
 {
-    if constexpr(std::is_same_v<decltype(t), List<>>) {
-        return u;
+    if constexpr(std::is_same_v<LHS, List<>>) {
+        return rhs;
     }
 
-    if constexpr(std::is_same_v<decltype(u), List<>>) {
-        return t;
+    if constexpr(std::is_same_v<RHS, List<>>) {
+        return lhs;
     }
 
-    return List{t, u};
+    return List{lhs, rhs};
 }
+
+template<atom_or_list LHS, atom_or_list RHS>
+requires(!std::is_same_v<LHS, RHS>) auto constexpr operator==(LHS, RHS)
+{
+    return false;
+}
+
 #endif    // ELDERLISTP_TOKEN_HPP
