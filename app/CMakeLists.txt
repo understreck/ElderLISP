@@ -1,12 +1,6 @@
 add_executable(ElderInterp main.cpp)
-
-if(BUILD_SHARED_LIBS)
-    target_link_libraries(ElderInterp
-        PRIVATE ElderLISP::shared)
-else()
-    target_link_libraries(ElderInterp
-        PRIVATE ElderLISP::static)
-endif()
+target_include_directories(ElderInterp
+    PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 set_target_properties(ElderInterp
     PROPERTIES
