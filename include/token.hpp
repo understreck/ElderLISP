@@ -2,6 +2,7 @@
 #define ELDERLISTP_TOKEN_HPP
 
 #include <variant>
+#include <tuple>
 #include <string_view>
 
 enum class CoreInstruction {
@@ -35,24 +36,26 @@ concept atom_or_list =
         ((std::is_same_v<Ts, Atom> || isSpecalisationOf<Ts, List>)&&...);
 
 template<>
-struct List<> {};
+struct List<> : std::tuple<> {};
 
 template<atom_or_list T>
-struct List<T> {
-    T first;
-};
+struct List<T> : std::tuple<T> {};
 
-template<atom_or_list T, atom_or_list... Us>
-struct List<T, Us...> {
-    constexpr List(T t, Us... us) : first{t}, rest{us...}
+template<atom_or_list T, atom_or_list U>
+struct List<T, U> : std::tuple<T, U> {
+    constexpr List(T t, U u) : std::tuple<T, U>{t, u}
     {}
-
-    T first;
-    List<Us...> rest;
 };
 
-template<atom_or_list T, atom_or_list... Us>
-List(T, Us...) -> List<T, Us...>;
+template<atom_or_list T, atom_or_list U, atom_or_list... Us>
+struct List<T, U, Us...> : std::tuple<T, List<U, Us...>> {
+    constexpr List(T t, U u, Us... us) :
+                std::tuple<T, List<U, Us...>>{t, List<U, Us...>{u, us...}}
+    {}
+};
+
+template<atom_or_list... Ts>
+List(Ts...) -> List<Ts...>;
 
 auto constexpr first(atom_or_list auto)
 {
@@ -62,7 +65,7 @@ auto constexpr first(atom_or_list auto)
 template<class T, class... Us>
 auto constexpr first(List<T, Us...> l)
 {
-    return l.first;
+    return std::get<0>(l);
 }
 
 auto constexpr rest(atom_or_list auto)
@@ -73,6 +76,19 @@ auto constexpr rest(atom_or_list auto)
 template<class T, class... Us>
 auto constexpr rest(List<T, Us...> l)
 {
-    return l.rest;
+    return std::get<1>(l);
+}
+
+auto constexpr cons(atom_or_list auto t, atom_or_list auto u)
+{
+    if constexpr(std::is_same_v<decltype(t), List<>>) {
+        return u;
+    }
+
+    if constexpr(std::is_same_v<decltype(u), List<>>) {
+        return t;
+    }
+
+    return List{t, u};
 }
 #endif    // ELDERLISTP_TOKEN_HPP
