@@ -57,31 +57,37 @@ struct List<T, U, Us...> : std::tuple<T, List<U, Us...>> {
 template<atom_or_list... Ts>
 List(Ts...) -> List<Ts...>;
 
-auto constexpr first(atom_or_list auto)
+auto constexpr first_impl(atom_or_list auto)
 {
     return List{};
 }
 
 template<class T, class... Us>
-auto constexpr first(List<T, Us...> l)
+auto constexpr first_impl(List<T, Us...> l)
 {
     return std::get<0>(l);
 }
 
-auto constexpr rest(atom_or_list auto)
+auto constexpr first = [](atom_or_list auto l) {
+    return first_impl(l);
+};
+
+auto constexpr rest_impl(atom_or_list auto)
 {
     return List{};
 }
 
 template<class T, class... Us>
-auto constexpr rest(List<T, Us...> l)
+auto constexpr rest_impl(List<T, Us...> l)
 {
     return std::get<1>(l);
 }
 
-template<atom_or_list LHS, atom_or_list RHS>
-auto constexpr cons(LHS lhs, RHS rhs)
-{
+auto constexpr rest = [](atom_or_list auto l) {
+    return rest_impl(l);
+};
+
+auto constexpr cons = []<atom_or_list LHS, atom_or_list RHS>(LHS lhs, RHS rhs) {
     if constexpr(std::is_same_v<LHS, List<>>) {
         return rhs;
     }
@@ -91,7 +97,7 @@ auto constexpr cons(LHS lhs, RHS rhs)
     }
 
     return List{lhs, rhs};
-}
+};
 
 template<atom_or_list LHS, atom_or_list RHS>
 requires(!std::is_same_v<LHS, RHS>) auto constexpr operator==(LHS, RHS)
