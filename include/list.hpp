@@ -1,5 +1,5 @@
-#ifndef ELDERLISTP_TOKEN_HPP
-#define ELDERLISTP_TOKEN_HPP
+#ifndef ELDERLISTP_LIST_HPP
+#define ELDERLISTP_LIST_HPP
 
 #include <variant>
 #include <tuple>
@@ -99,4 +99,4 @@ requires(!std::is_same_v<LHS, RHS>) auto constexpr operator==(LHS, RHS)
     return false;
 }
 
-#endif    // ELDERLISTP_TOKEN_HPP
+#endif    // ELDERLISTP_LIST_HPP
