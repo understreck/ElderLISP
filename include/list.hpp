@@ -38,16 +38,6 @@ concept character = std::is_same_v<T, Character<T::value>>;
 template<char c>
 auto constexpr Char = Character<c>{};
 
-// Label
-template<char... cs>
-struct Label : std::tuple<Character<cs>...> {};
-
-template<char... cs>
-auto constexpr Lbl = Label<cs...>{};
-
-template<class T>
-concept label = std::is_same_v<T, Label<T::value>>;
-
 // Integer
 template<int i>
 struct Integer : std::integral_constant<int, i> {};
@@ -68,13 +58,7 @@ concept boolean = std::is_same_v<T, Boolean<T::value>>;
 auto constexpr True  = Boolean<true>{};
 auto constexpr False = Boolean<false>{};
 
-// template<class T, class... Us>
-// auto constexpr isSameAsOneOf = (std::is_same_v<T, Us> || ...);
-
-template<class T>
-concept data_type = core_instruction<T> || character<T> || label<T> || integer<
-        T> || boolean<T>;
-
+// IsSpecalisationOf
 template<class T, template<class...> class U>
 struct IsSpecalisationOf : std::false_type {};
 
@@ -82,7 +66,25 @@ template<template<class...> class T, class... Args>
 struct IsSpecalisationOf<T<Args...>, T> : std::true_type {};
 
 template<class T, template<class...> class U>
-concept is_specialisation_of = IsSpecalisationOf<T, U>::value;
+concept is_specialisation_of =
+        IsSpecalisationOf<std::remove_cvref_t<T>, U>::value;
+
+// Label
+template<character... Cs>
+struct Label : std::tuple<Cs...> {};
+
+template<char... cs>
+auto constexpr Lbl = Label<Character<cs>...>{};
+
+template<class T>
+concept label = is_specialisation_of<T, Label>;
+
+// template<class T, class... Us>
+// auto constexpr isSameAsOneOf = (std::is_same_v<T, Us> || ...);
+
+template<class T>
+concept data_type = core_instruction<T> || character<T> || label<T> || integer<
+        T> || boolean<T>;
 
 template<class...>
 struct List;
@@ -117,7 +119,13 @@ struct List<T, U, Us...> : std::tuple<T, List<U, Us...>> {
     {}
 };
 
-template<atom_or_list... Ts>
+template<class... Ts>
 List(Ts...) -> List<Ts...>;
+
+template<class T>
+struct Length {};
+
+template<class... Ts>
+struct Length<List<Ts...>> : std::integral_constant<size_t, sizeof...(Ts)> {};
 
 #endif    // ELDERLISTP_LIST_HPP

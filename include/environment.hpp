@@ -52,29 +52,88 @@ concept has_outer_env = requires(Env env)
 };
 
 template<key_value_pair... KVPs>
-auto constexpr push_kvps(environment auto env, std::tuple<KVPs...> kvps)
+auto consteval push_kvps(environment auto env, std::tuple<KVPs...> kvps)
 {
     return Environment{std::tuple_cat(kvps, env.kvps)};
 }
 
 template<environment Env, key_value_pair... KVPs>
 requires has_outer_env<Env>
-auto constexpr push_kvps(Env env, std::tuple<KVPs...> kvps)
+auto consteval push_kvps(Env env, std::tuple<KVPs...> kvps)
 {
     return Environment{std::tuple_cat(kvps, env.kvps), env.outerEnvironment};
 }
 
 template<environment Env>
-auto constexpr push_scope(Env outer)
+auto consteval push_scope(Env outer)
 {
     return Environment{{}, outer};
 }
 
 template<environment Env>
-auto constexpr pop_scope(Env inner)
+auto consteval pop_scope(Env inner)
 {
     static_assert(has_outer_env<Env>, "Needs an outerEnvironment");
 
     return inner.outerEnvironment;
+}
+
+template<size_t i, key_value_pair... KVPs>
+auto consteval find_impl(std::tuple<KVPs...> kvps, label auto key)
+{
+    if constexpr(i < sizeof...(KVPs)) {
+        auto kvp = std::get<i>(kvps);
+
+        if constexpr(std::is_same_v<decltype(kvp.key), decltype(key)>) {
+            return kvp.value;
+        }
+        else {
+            return find_impl<i + 1>(kvps, key);
+        }
+    }
+    else {
+        return key;
+    }
+}
+
+template<key_value_pair... KVPs>
+auto consteval find_impl(std::tuple<KVPs...> kvps, label auto key)
+{
+    return find_impl<0>(kvps, key);
+}
+
+template<environment Env>
+requires(!has_outer_env<Env>) auto consteval find_impl(Env env, label auto key)
+{
+    auto value = find_impl(env.kvps, key);
+    static_assert(
+            !std::is_same_v<decltype(value), decltype(key)>,
+            "Key is not found in this environment");
+
+    return value;
+}
+
+template<environment Env>
+requires has_outer_env<Env>
+auto consteval find_impl(Env env, label auto key)
+{
+    auto value = find_impl(env.kvps, key);
+
+    if constexpr(std::is_same_v<decltype(value), decltype(key)>) {
+        return find_impl(env.outerEnvironment, key);
+    }
+    else {
+        return value;
+    }
+}
+
+auto consteval find(environment auto env, label auto key)
+{
+    auto value = find_impl(env, key);
+    static_assert(
+            !std::is_same_v<decltype(value), decltype(key)>,
+            "Could not find key in environment");
+
+    return value;
 }
 #endif    // ELDERLISTP_ENVIRONMENT_HPP

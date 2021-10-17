@@ -2,7 +2,9 @@
 #define ELDERLISTP_INTERPRETER_HPP
 
 #include "list.hpp"
-//#include "environment.hpp"
+#include "environment.hpp"
+
+auto consteval evaluate(environment auto, list auto);
 
 auto consteval first_impl(atom_or_list auto)
 {
@@ -67,15 +69,23 @@ auto consteval quote(atom_or_list auto aol)
     return aol;
 }
 
-auto consteval define(environment auto env, Label lbl, atom_or_list auto aol)
+auto consteval define(
+        environment auto env,
+        label auto lbl,
+        atom_or_list auto aol)
 {
-    return std::pair{push_kvps(env, KeyValuePair{lbl, aol}), lbl};
+    return std::pair{
+            push_kvps(env, KeyValuePair{lbl, evaluate(env, aol)}),
+            lbl};
 }
 
-template<environment Env, label... Labels, list L>
-auto consteval lambda_impl(Env outer, List<Labels...> args, L funcBody)
+template<label... Labels>
+auto consteval lambda_impl(
+        environment auto,
+        List<Labels...> args,
+        list auto funcBody)
 {
-    return std::pair{outer, List{CoreInstruction::LAMBDA, args, funcBody}};
+    return List{CI<LAMBDA>, args, funcBody};
 }
 
 // template<environment Env, list L>
@@ -99,19 +109,49 @@ auto consteval lambda_impl(Env outer, List<Labels...> args, L funcBody)
 // return lambda_impl(outer, ls...);
 //};
 
-template<atom_or_list Predicate, atom_or_list Body>
-auto consteval condition_impl(
-        environment auto outer,
-        List<Predicate, Body> conditional)
+template<class L>
+concept conditional = Length<L>::value == 2;
+
+auto consteval condition_impl(environment auto outer, conditional auto cond)
 {
-    auto predicateResult = evaluate(outer, first(conditional));
- if(
+    auto predicateResult = evaluate(outer, first(cond));
+    if(equal(predicateResult, True)) {
+        return evaluate(outer, rest(cond));
+    }
+
+    return NIL;
+}
+
+template<conditional Cond, conditional... Cs>
+auto consteval condition_impl(environment auto outer, List<Cond, Cs...> conds)
+{
+    auto cond      = first(conds);
+    auto predicate = first(cond);
+    auto body      = rest(cond);
+
+    auto predicateResult = evaluate(outer, predicate);
+    if(equal(predicateResult, True)) {
+        return evaluate(outer, body);
+    }
+
+    return condition_impl(outer, rest(conds));
 }
 
 template<list... Lists>
-auto consteval condition(environment auto outer, List<Lists...> conditions)
+auto consteval condition(environment auto outer, List<Lists...> conditionals)
 {
-    return condition_impl(outer, conditions);
+    return condition_impl(outer, conditionals);
 };
+
+template<atom Atom>
+auto consteval evaluate(environment auto outer, Atom a)
+{
+    if constexpr(label<Atom>) {
+        return find(outer, a);
+    }
+    else {
+        return a;
+    }
+}
 
 #endif    // ELDERLISTP_INTERPRETER_HPP
