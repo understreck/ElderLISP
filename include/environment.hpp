@@ -8,7 +8,7 @@
 
 template<atom_or_list Value>
 struct KeyValuePair {
-    std::string_view key;
+    Label key;
     Value value;
 };
 
@@ -19,7 +19,7 @@ template<class... Ts>
 concept key_value_pair = (isSpecalisationOf<Ts, KeyValuePair> && ...);
 
 template<class...>
-struct Environment {};
+struct Environment;
 
 template<key_value_pair... KVPs>
 struct Environment<KVPs...> {
@@ -51,18 +51,17 @@ concept has_outer_env = requires(Env env)
     env.outerEnvironment;
 };
 
-auto constexpr push_kvp(environment auto env, key_value_pair auto kvp)
+template<key_value_pair... KVPs>
+auto constexpr push_kvps(environment auto env, std::tuple<KVPs...> kvps)
 {
-    return Environment{std::tuple_cat(std::tuple{kvp}, env.kvps)};
+    return Environment{std::tuple_cat(kvps, env.kvps)};
 }
 
-template<environment Env>
+template<environment Env, key_value_pair... KVPs>
 requires has_outer_env<Env>
-auto constexpr push_kvp(Env env, key_value_pair auto kvp)
+auto constexpr push_kvps(Env env, std::tuple<KVPs...> kvps)
 {
-    return Environment{
-            std::tuple_cat(std::tuple{kvp}, env.kvps),
-            env.outerEnvironment};
+    return Environment{std::tuple_cat(kvps, env.kvps), env.outerEnvironment};
 }
 
 template<environment Env>
