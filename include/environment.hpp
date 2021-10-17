@@ -6,17 +6,17 @@
 
 #include "list.hpp"
 
-template<atom_or_list Value>
+template<label Label, atom_or_list Value>
 struct KeyValuePair {
     Label key;
     Value value;
 };
 
-template<atom_or_list T>
-KeyValuePair(std::string_view, T) -> KeyValuePair<T>;
+template<label Label, atom_or_list Value>
+KeyValuePair(Label, Value) -> KeyValuePair<Label, Value>;
 
 template<class... Ts>
-concept key_value_pair = (isSpecalisationOf<Ts, KeyValuePair> && ...);
+concept key_value_pair = (is_specialisation_of<Ts, KeyValuePair> && ...);
 
 template<class...>
 struct Environment;
@@ -33,14 +33,14 @@ template<key_value_pair... KVPs>
 Environment(std::tuple<KVPs...>) -> Environment<KVPs...>;
 
 template<class Env, key_value_pair... KVPs>
-requires isSpecalisationOf<Env, Environment>
+requires is_specialisation_of<Env, Environment>
 struct Environment<Env, KVPs...> {
     std::tuple<KVPs...> kvps;
     Env outerEnvironment;
 };
 
 template<class T>
-concept environment = isSpecalisationOf<T, Environment>;
+concept environment = is_specialisation_of<T, Environment>;
 
 template<environment Env, key_value_pair... KVPs>
 Environment(std::tuple<KVPs...>, Env) -> Environment<Env, KVPs...>;
