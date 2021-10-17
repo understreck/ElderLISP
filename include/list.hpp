@@ -58,12 +58,22 @@ concept integer = std::is_same_v<T, Integer<T::value>>;
 template<int i>
 auto constexpr Int = Integer<i>{};
 
-//template<class T, class... Us>
-//auto constexpr isSameAsOneOf = (std::is_same_v<T, Us> || ...);
+// Boolean
+template<bool b>
+struct Boolean : std::integral_constant<bool, b> {};
 
 template<class T>
-concept data_type =
-        core_instruction<T> || character<T> || label<T> || integer<T>;
+concept boolean = std::is_same_v<T, Boolean<T::value>>;
+
+auto constexpr True  = Boolean<true>{};
+auto constexpr False = Boolean<false>{};
+
+// template<class T, class... Us>
+// auto constexpr isSameAsOneOf = (std::is_same_v<T, Us> || ...);
+
+template<class T>
+concept data_type = core_instruction<T> || character<T> || label<T> || integer<
+        T> || boolean<T>;
 
 template<class T, template<class...> class U>
 struct IsSpecalisationOf : std::false_type {};
