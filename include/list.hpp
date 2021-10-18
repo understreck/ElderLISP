@@ -55,8 +55,11 @@ struct Boolean : std::integral_constant<bool, b> {};
 template<class T>
 concept boolean = std::is_same_v<T, Boolean<T::value>>;
 
-auto constexpr True  = Boolean<true>{};
-auto constexpr False = Boolean<false>{};
+template<bool b>
+auto constexpr Bool = Boolean<b>{};
+
+auto constexpr True  = Bool<true>;
+auto constexpr False = Bool<false>;
 
 // IsSpecalisationOf
 template<class T, template<class...> class U>
