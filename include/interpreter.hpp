@@ -4,7 +4,7 @@
 #include "list.hpp"
 #include "environment.hpp"
 
-auto consteval evaluate(environment auto, list auto);
+auto consteval evaluate(environment auto, atom_or_list auto...);
 
 auto consteval first_impl(atom_or_list auto)
 {
@@ -74,9 +74,9 @@ auto consteval define(
         label auto lbl,
         atom_or_list auto aol)
 {
-    return std::pair{
-            push_kvps(env, KeyValuePair{lbl, evaluate(env, aol)}),
-            lbl};
+    auto [newEnv, result] = evaluate(env, aol);
+
+    return std::pair{push_kvps(newEnv, KeyValuePair{lbl, result}), result};
 }
 
 template<label... Labels>
@@ -144,14 +144,33 @@ auto consteval condition(environment auto outer, List<Lists...> conditionals)
 };
 
 template<atom Atom>
-auto consteval evaluate(environment auto outer, Atom a)
+auto consteval evaluate(environment auto env, Atom a)
 {
     if constexpr(label<Atom>) {
-        return find(outer, a);
+        return std::pair{env, find(env, a)};
     }
     else {
-        return a;
+        return std::pair{env, a};
     }
 }
+
+auto consteval evaluate(environment auto env, list auto line)
+{
+    auto [newEnv, function] = evaluate(env, first(line));
+
+    if constexpr(std::is_same_v<decltype(function), CoreInstruction<FIRST>>) {
+        return std::pair{newEnv, first(rest(line))};
+    }
+    if constexpr(std::is_same_v<decltype(function), CoreInstruction<REST>>) {
+        return std::pair{newEnv, rest(rest(line))};
+    }
+    if constexpr(std::is_same_v<decltype(function), CoreInstruction<COMBINE>>) {
+        return std::pair{newEnv, combine(first(rest(line)), rest(rest(line)))};
+    }
+}
+
+auto constexpr result =
+        evaluate(Environment{}, List{CI<COMBINE>, Int<5>, Int<4>});
+static_assert(result.second == List{Int<5>, Int<4>});
 
 #endif    // ELDERLISTP_INTERPRETER_HPP
