@@ -106,9 +106,9 @@ template<environment Env>
 requires(!has_outer_env<Env>) auto consteval find_impl(Env env, label auto key)
 {
     auto value = find_impl(env.kvps, key);
-    static_assert(
-            !std::is_same_v<decltype(value), decltype(key)>,
-            "Key is not found in this environment");
+    //static_assert(
+            //!std::is_same_v<decltype(value), decltype(key)>,
+            //"Key is not found in this environment");
 
     return value;
 }

@@ -5,7 +5,10 @@
 #include "environment.hpp"
 #include "interpreter.hpp"
 
-auto constexpr program = List{CI<OUT>, C<'T'>, C<'e'>, C<'s'>, C<'t'>};
+auto constexpr program =
+        List{CI<IN>,
+             List{CI<OUT>, List{C<'2'>}},
+             List{Lbl<'a', 'b'>, List{CI<OUT>, List{C<'1'>}}}};
 // CI<CONDITION>,
 // List{List{CI<EQUAL>,
 // True,
@@ -15,10 +18,10 @@ auto constexpr program = List{CI<OUT>, C<'T'>, C<'e'>, C<'s'>, C<'t'>};
 // Int<4>},
 // List{True, List{CI<FIRST>, CI<REST>, Int<5>, List{Int<1>, Int<2>}}},
 // List{False, NIL}};
+auto constexpr a = evaluate(Environment{}, program).second;
 
 int
 main(int, char**)
 {
-    auto constexpr a = evaluate(Environment{}, program).second;
-    a();
+    auto b = a();
 }

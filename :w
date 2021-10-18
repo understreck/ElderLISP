@@ -218,9 +218,7 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
         return std::pair{newEnv, Output{evaluate(newEnv, rest(line)).second}};
     }
     else if constexpr(std::is_same_v<decltype(function), CoreInstruction<IN>>) {
-        return std::pair{
-                newEnv,
-                Input{newEnv, first(rest(line)), rest(rest(line))}};
+        return std::pair{newEnv, Input{newEnv, rest(line)}};
     }
     else {
         return std::pair{env, line};
@@ -244,8 +242,7 @@ template<
         atom_or_list... Branches>
 struct Input<Env, Default, List<Labels, Branches>...> {
     Env env;
-    Default def;
-    List<List<Labels, Branches>...> branches;
+    List<List<Labels, Branches>..., Default> branches;
 
     using result_type = std::variant<
             std::invoke_result_t<decltype(ev), Env, Branches>...,
@@ -253,14 +250,15 @@ struct Input<Env, Default, List<Labels, Branches>...> {
 
     template<label Label, atom_or_list Branch>
     auto
-    eval(std::string s, List<Label, Branch> last) const -> result_type
+    eval(std::string s, List<List<Label, Branch>, Default> last) const
+            -> result_type
     {
         auto l = first(first(last));
         if(s == label_to_string(l)) {
             return evaluate(env, rest(first(last)));
         }
 
-        return evaluate(env, def);
+        return evaluate(env, rest(last));
     }
 
     template<
@@ -270,8 +268,8 @@ struct Input<Env, Default, List<Labels, Branches>...> {
             atom_or_list... RestB>
     auto
     eval(std::string s,
-         List<List<Label, Branch>, List<RestL, RestB>...> branches) const
-            -> result_type
+         List<List<Label, Branch>, List<RestL, RestB>..., Default> branches)
+            const -> result_type
     {
         auto l = first(first(branches));
         if(s == label_to_string(l)) {
@@ -287,42 +285,7 @@ struct Input<Env, Default, List<Labels, Branches>...> {
         auto string = std::string{};
         std::cin >> string;
 
-        return eval(string, branches);
-    }
-};
-
-template<
-        environment Env,
-        atom_or_list Default,
-        label Label,
-        atom_or_list Branch>
-struct Input<Env, Default, List<Label, Branch>> {
-    Env env;
-    Default def;
-    List<Label, Branch> branch;
-
-    using result_type = std::variant<
-            std::invoke_result_t<decltype(ev), Env, Branch>,
-            std::invoke_result_t<decltype(ev), Env, Default>>;
-
-    auto
-    eval(std::string s, List<Label, Branch> last) const -> result_type
-    {
-        auto l = first(first(last));
-        if(s == label_to_string(l)) {
-            return evaluate(env, rest(first(last)));
-        }
-
-        return evaluate(env, def);
-    }
-
-    auto
-    operator()() const -> result_type
-    {
-        auto string = std::string{};
-        std::cin >> string;
-
-        return eval(string, branch);
+        return eval(string, first(branches), rest(branches));
     }
 };
 
@@ -331,6 +294,24 @@ template<
         atom_or_list Default,
         label... Labels,
         atom_or_list... Branches>
-Input(Env, Default, List<Labels, Branches>...)
+Input(Env, List<Labels, Branches>..., Default)
         -> Input<Env, Default, List<Labels, Branches>...>;
+
+auto constexpr program = List{
+    CI<IN>,
+        List{
+            Lbl<'a','b'>,
+            List{CI<OUT>, C<'1'>}},
+        List{CI<OUT>, C<'2'>}};
+// CI<CONDITION>,
+// List{List{CI<EQUAL>,
+// True,
+// List{CI<EQUAL>,
+// List{CI<FIRST>, List{True, False}},
+// List{CI<QUOTE>, CI<FIRST>, List{True, False}}}},
+// Int<4>},
+// List{True, List{CI<FIRST>, CI<REST>, Int<5>, List{Int<1>, Int<2>}}},
+// List{False, NIL}};
+
+auto constexpr a = evaluate(Environment{}, program).second;
 #endif    // ELDERLISTP_INTERPRETER_HPP

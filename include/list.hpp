@@ -110,23 +110,18 @@ struct List<> : std::tuple<> {};
 
 auto constexpr NIL = List<>{};
 
+template<class...>
+struct Input;
+
 template<class T>
 concept atom = std::is_same_v<T, List<>> || data_type<
-        T> || is_specialisation_of<T, Output>;
+        T> || is_specialisation_of<T, Output> || is_specialisation_of<T, Input>;
 
 template<class T>
 concept list = is_specialisation_of<T, List>;
 
-template<class...>
-struct Branch;
-
 template<class... Ts>
-concept atom_or_list =
-        ((atom<Ts> || list<Ts> || is_specialisation_of<Ts, Branch>)&&...);
-
-template<atom_or_list TrueBranch, atom_or_list FalseBranch>
-struct Branch<TrueBranch, FalseBranch> :
-            std::variant<TrueBranch, FalseBranch> {};
+concept atom_or_list = ((atom<Ts> || list<Ts>)&&...);
 
 template<atom_or_list T>
 struct List<T> : std::tuple<T> {};
