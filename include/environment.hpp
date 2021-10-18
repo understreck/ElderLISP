@@ -130,9 +130,9 @@ auto consteval find_impl(Env env, label auto key)
 auto consteval find(environment auto env, label auto key)
 {
     auto value = find_impl(env, key);
-    static_assert(
-            !std::is_same_v<decltype(value), decltype(key)>,
-            "Could not find key in environment");
+    // static_assert(
+    //! std::is_same_v<decltype(value), decltype(key)>,
+    //"Could not find key in environment");
 
     return value;
 }

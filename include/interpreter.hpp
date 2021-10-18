@@ -130,7 +130,7 @@ auto consteval condition_impl(environment auto outer, List<Cond, Cs...> conds)
 
     auto [newEnv, predicateResult] = evaluate(outer, predicate)();
     if constexpr(std::is_same_v<decltype(predicateResult), Boolean<true>>) {
-        return evaluate(newEnv, body)().second;
+        return evaluate(newEnv, body).second;
     }
     else {
         return condition_impl(outer, rest(conds));
@@ -147,14 +147,10 @@ template<atom Atom>
 auto consteval evaluate(environment auto env, Atom a)
 {
     if constexpr(label<Atom>) {
-        return [=]() {
-            return std::pair{env, find(env, a)};
-        };
+        return std::pair{env, find(env, a)};
     }
     else {
-        return [=]() {
-            return std::pair{env, a};
-        };
+        return std::pair{env, a};
     }
 }
 
@@ -163,90 +159,65 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
         environment auto env,
         Line line)
 {
-    auto [nE, f]  = evaluate(env, first(line))();
-    auto newEnv   = nE;
-    auto function = f;
+    auto [newEnv, function] = evaluate(env, first(line));
 
     if constexpr(std::is_same_v<decltype(function), CoreInstruction<FIRST>>) {
-        return [=]() {
-            return std::pair{
-                    newEnv,
-                    first(evaluate(newEnv, rest(line))().second)};
-        };
+        return std::pair{newEnv, first(evaluate(newEnv, rest(line)).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<REST>>) {
-        return [=]() {
-            return std::pair{
-                    newEnv,
-                    rest(evaluate(newEnv, rest(line))().second)};
-        };
+        return std::pair{newEnv, rest(evaluate(newEnv, rest(line)).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<COMBINE>>) {
-        return [=]() {
-            return std::pair{
-                    newEnv,
-                    combine(evaluate(newEnv, first(rest(line)))().second,
-                            evaluate(newEnv, rest(rest(line)))().second)};
-        };
+        return std::pair{
+                newEnv,
+                combine(evaluate(newEnv, first(rest(line))).second,
+                        evaluate(newEnv, rest(rest(line))).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<CONDITION>>) {
-        return [=]() {
-            return std::pair{newEnv, condition(newEnv, rest(line))};
-        };
+        return std::pair{newEnv, condition(newEnv, rest(line))};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<EQUAL>>) {
-        return [=]() {
-            return std::pair{
-                    newEnv,
-                    equal(evaluate(newEnv, first(rest(line)))().second,
-                          evaluate(newEnv, rest(rest(line)))().second)};
-        };
+        return std::pair{
+                newEnv,
+                equal(evaluate(newEnv, first(rest(line))).second,
+                      evaluate(newEnv, rest(rest(line))).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<ATOM>>) {
-        return [=]() {
-            return std::pair{
-                    newEnv,
-                    Bool<atom<
-                            decltype(evaluate(decltype(newEnv){}, rest(line))()
-                                             .second)>>};
-        };
+        return std::pair{
+                newEnv,
+                Bool<atom<decltype(evaluate(decltype(newEnv){}, rest(line))
+                                           .second)>>};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<QUOTE>>) {
-        return [=]() {
-            return std::pair{newEnv, rest(line)};
-        };
+        return std::pair{newEnv, rest(line)};
+    }
+    else if constexpr(std::is_same_v<
+                              decltype(function),
+                              CoreInstruction<DEFINE>>) {
+        return define(
+                evaluate(newEnv, first(rest(line))),
+                evaluate(newEnv, rest(rest(line))));
+    }
+    else if constexpr(std::is_same_v<
+                              decltype(function),
+                              CoreInstruction<OUT>>) {
+        return std::pair{newEnv, Output{evaluate(newEnv, rest(line)).second}};
     }
     else {
-        return [=]() {
-            return std::pair{env, line};
-        };
+        return std::pair{env, line};
     }
 }
-
-auto constexpr program = List{
-        CI<CONDITION>,
-        List{List{CI<EQUAL>,
-                  True,
-                  List{CI<EQUAL>,
-                       List{CI<FIRST>, List{True, False}},
-                       List{CI<QUOTE>, CI<FIRST>, List{True, False}}}},
-             Int<4>},
-        List{True, List{CI<FIRST>, CI<REST>, Int<5>, List{Int<1>, Int<2>}}},
-        List{False, NIL}};
-auto constexpr a = evaluate(Environment{}, program)().second;
-
-static_assert(a == 4);
 
 #endif    // ELDERLISTP_INTERPRETER_HPP

@@ -2,7 +2,9 @@
 #define ELDERLISTP_LIST_HPP
 
 #include <cstddef>
+#include <iostream>
 #include <string_view>
+#include <string>
 #include <tuple>
 #include <variant>
 
@@ -16,7 +18,9 @@ enum CoreInstruction_enum {
     FIRST,
     REST,
     COMBINE,
-    CONDITION
+    CONDITION,
+    OUT,
+    IN
 };
 
 template<CoreInstruction_enum ci>
@@ -36,7 +40,7 @@ template<class T>
 concept character = std::is_same_v<T, Character<T::value>>;
 
 template<char c>
-auto constexpr Char = Character<c>{};
+auto constexpr C = Character<c>{};
 
 // Integer
 template<int i>
@@ -82,9 +86,6 @@ auto constexpr Lbl = Label<Character<cs>...>{};
 template<class T>
 concept label = is_specialisation_of<T, Label>;
 
-// template<class T, class... Us>
-// auto constexpr isSameAsOneOf = (std::is_same_v<T, Us> || ...);
-
 template<class T>
 concept data_type = core_instruction<T> || character<T> || label<T> || integer<
         T> || boolean<T>;
@@ -92,19 +93,40 @@ concept data_type = core_instruction<T> || character<T> || label<T> || integer<
 template<class...>
 struct List;
 
+template<character... Cs>
+struct Output : List<Cs...> {
+    auto
+    operator()() const
+    {
+        ((std::cout << Cs::value), ...);
+    }
+};
+
+template<character... Cs>
+Output(List<Cs...>) -> Output<Cs...>;
+
 template<>
 struct List<> : std::tuple<> {};
 
 auto constexpr NIL = List<>{};
 
 template<class T>
-concept atom = std::is_same_v<T, List<>> || data_type<T>;
+concept atom = std::is_same_v<T, List<>> || data_type<
+        T> || is_specialisation_of<T, Output>;
 
 template<class T>
 concept list = is_specialisation_of<T, List>;
 
+template<class...>
+struct Branch;
+
 template<class... Ts>
-concept atom_or_list = ((atom<Ts> || list<Ts>)&&...);
+concept atom_or_list =
+        ((atom<Ts> || list<Ts> || is_specialisation_of<Ts, Branch>)&&...);
+
+template<atom_or_list TrueBranch, atom_or_list FalseBranch>
+struct Branch<TrueBranch, FalseBranch> :
+            std::variant<TrueBranch, FalseBranch> {};
 
 template<atom_or_list T>
 struct List<T> : std::tuple<T> {};
