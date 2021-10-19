@@ -24,8 +24,8 @@ auto consteval rest_impl(atom_or_list auto)
     return NIL;
 }
 
-template<class T, class... Us>
-auto consteval rest_impl(List<T, Us...> l)
+template<class T, class U, class... Us>
+auto consteval rest_impl(List<T, U, Us...> l)
 {
     return std::get<1>(l);
 }
@@ -84,6 +84,32 @@ auto consteval lambda(environment auto outer, List<List<Args...>, FBody> l)
     return std::pair{outer, combine(CI<LAMBDA>, l)};
 }
 
+template<label L>
+auto consteval replace(L, atom_or_list auto replacement, L)
+{
+    return replacement;
+}
+
+auto consteval replace(label auto, atom_or_list auto, label auto body)
+{
+    return body;
+}
+
+auto consteval replace(label auto, atom_or_list auto, atom auto body)
+{
+    return body;
+}
+
+auto consteval replace(
+        label auto name,
+        atom_or_list auto replacement,
+        list auto body)
+{
+    return combine(
+            replace(name, replacement, first(body)),
+            replace(name, replacement, rest(body)));
+}
+
 template<environment Env, label ArgName, atom_or_list FBody, atom_or_list Arg>
 auto consteval lambda(Env outer, List<ArgName, FBody, Arg> funcExpr)
 {
@@ -118,11 +144,6 @@ auto consteval lambda(
             combine(rest(first(funcExpr)),
                     combine(newBody, rest(rest(rest(funcExpr))))));
 }
-
-// auto consteval lambda =
-//[]<environment ReturnEnv>(environment auto outer, list auto... ls) {
-// return lambda_impl(outer, ls...);
-//};
 
 template<class L>
 concept conditional = Length<L>::value == 2;
@@ -351,4 +372,11 @@ template<
         atom_or_list... Branches>
 Input(Env, Default, List<Labels, Branches>...)
         -> Input<Env, Default, List<Labels, Branches>...>;
+
+auto constexpr programA =
+        List{CI<LAMBDA>,
+             Lbl<"a">,
+             List{CI<FIRST>, Lbl<"a">},
+             List{Int<5>, Int<6>}};
+auto constexpr a = rest(programA);
 #endif    // ELDERLISTP_INTERPRETER_HPP
