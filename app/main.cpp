@@ -5,7 +5,7 @@
 #include "environment.hpp"
 #include "interpreter.hpp"
 
-auto constexpr program = List{CI<OUT>, List{C<'2'>}};
+auto constexpr program = List{CI<OUT>, Str<"Hello my baby">};
 // CI<CONDITION>,
 // List{List{CI<EQUAL>,
 // True,

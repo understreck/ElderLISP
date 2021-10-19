@@ -6,6 +6,7 @@
 #include <string_view>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <variant>
 
 // CoreInstruction
@@ -79,7 +80,7 @@ concept is_specialisation_of =
 // Label
 template<size_t N>
 struct StringLiteral : std::array<char, N> {
-    constexpr StringLiteral(char const (&str)[N]) :
+    consteval StringLiteral(char const (&str)[N]) :
                 std::array<char, N>{std::to_array(str)}
     {}
 };
@@ -91,13 +92,21 @@ template<StringLiteral string>
 struct SLWrapper : std::string_view {
     constexpr SLWrapper() : std::string_view{string.data()}
     {}
+
+    static auto constexpr value{string};
 };
 
 template<StringLiteral string>
 auto constexpr Str = SLWrapper<string>{};
 
 template<class T>
-concept string = std::is_same_v<T, SLWrapper<T::value>>;
+struct IsSLWrapper : std::false_type {};
+
+template<StringLiteral s>
+struct IsSLWrapper<SLWrapper<s>> : std::true_type {};
+
+template<class T>
+concept string = IsSLWrapper<T>::value;
 
 template<class T>
 concept data_type = core_instruction<T> || character<T> || string<T> || integer<
@@ -106,8 +115,11 @@ concept data_type = core_instruction<T> || character<T> || string<T> || integer<
 template<class...>
 struct List;
 
+template<class>
+struct Output;
+
 template<character... Cs>
-struct Output : List<Cs...> {
+struct Output<List<Cs...>> : List<Cs...> {
     auto
     operator()() const
     {
@@ -115,8 +127,20 @@ struct Output : List<Cs...> {
     }
 };
 
+template<StringLiteral s>
+struct Output<SLWrapper<s>> : SLWrapper<s> {
+    auto
+    operator()() const
+    {
+        std::cout << *this;
+    }
+};
+
 template<character... Cs>
 Output(List<Cs...>) -> Output<Cs...>;
+
+template<StringLiteral s>
+Output(SLWrapper<s>) -> Output<SLWrapper<s>>;
 
 template<>
 struct List<> : std::tuple<> {};
