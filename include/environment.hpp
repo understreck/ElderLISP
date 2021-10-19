@@ -6,13 +6,13 @@
 
 #include "list.hpp"
 
-template<string Label, atom_or_list Value>
+template<label Label, atom_or_list Value>
 struct KeyValuePair {
     Label key;
     Value value;
 };
 
-template<string Label, atom_or_list Value>
+template<label Label, atom_or_list Value>
 KeyValuePair(Label, Value) -> KeyValuePair<Label, Value>;
 
 template<class... Ts>
@@ -79,7 +79,7 @@ auto consteval pop_scope(Env inner)
 }
 
 template<size_t i, key_value_pair... KVPs>
-auto consteval find_impl(std::tuple<KVPs...> kvps, string auto key)
+auto consteval find_impl(std::tuple<KVPs...> kvps, label auto key)
 {
     if constexpr(i < sizeof...(KVPs)) {
         auto kvp = std::get<i>(kvps);
@@ -97,13 +97,13 @@ auto consteval find_impl(std::tuple<KVPs...> kvps, string auto key)
 }
 
 template<key_value_pair... KVPs>
-auto consteval find_impl(std::tuple<KVPs...> kvps, string auto key)
+auto consteval find_impl(std::tuple<KVPs...> kvps, label auto key)
 {
     return find_impl<0>(kvps, key);
 }
 
 template<environment Env>
-requires(!has_outer_env<Env>) auto consteval find_impl(Env env, string auto key)
+requires(!has_outer_env<Env>) auto consteval find_impl(Env env, label auto key)
 {
     auto value = find_impl(env.kvps, key);
     // static_assert(
@@ -115,7 +115,7 @@ requires(!has_outer_env<Env>) auto consteval find_impl(Env env, string auto key)
 
 template<environment Env>
 requires has_outer_env<Env>
-auto consteval find_impl(Env env, string auto key)
+auto consteval find_impl(Env env, label auto key)
 {
     auto value = find_impl(env.kvps, key);
 
@@ -127,7 +127,7 @@ auto consteval find_impl(Env env, string auto key)
     }
 }
 
-auto consteval find(environment auto env, string auto key)
+auto consteval find(environment auto env, label auto key)
 {
     auto value = find_impl(env, key);
     // static_assert(
