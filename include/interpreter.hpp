@@ -8,6 +8,55 @@
 
 auto consteval evaluate(environment auto, atom_or_list auto...);
 
+template<atom_or_list LHS, atom_or_list RHS>
+requires std::is_same_v<LHS, RHS>
+auto consteval equal(LHS, RHS)
+{
+    return True;
+}
+
+auto consteval equal(atom_or_list auto, atom_or_list auto)
+{
+    return False;
+}
+
+auto consteval quote(atom_or_list auto aol)
+{
+    return aol;
+}
+auto consteval merge(atom auto a, atom auto b)
+{
+    return List{a, b};
+}
+
+template<atom_or_list... Bs>
+auto constexpr merge(atom auto a, List<Bs...> bs)
+{
+    if constexpr(equal(a, NIL)) {
+        return bs;
+    }
+    else {
+        return List{a, Bs{}...};
+    }
+}
+
+template<atom_or_list... As>
+auto constexpr merge(List<As...> as, atom auto b)
+{
+    if constexpr(equal(b, NIL)) {
+        return as;
+    }
+    else {
+        return List{As{}..., b};
+    }
+}
+
+template<atom_or_list... As, atom_or_list... Bs>
+auto constexpr merge(List<As...>, List<Bs...>)
+{
+    return List{As{}..., Bs{}...};
+}
+
 auto consteval first(atom_or_list auto)
 {
     return NIL;
@@ -45,25 +94,9 @@ auto consteval combine(LHS lhs, RHS rhs)
     if constexpr(std::is_same_v<List<>, RHS>) {
         return lhs;
     }
-
-    return List{lhs, rhs};
-}
-
-template<atom_or_list LHS, atom_or_list RHS>
-requires std::is_same_v<LHS, RHS>
-auto consteval equal(LHS, RHS)
-{
-    return True;
-}
-
-auto consteval equal(atom_or_list auto, atom_or_list auto)
-{
-    return False;
-}
-
-auto consteval quote(atom_or_list auto aol)
-{
-    return aol;
+    else {
+        return List{lhs, rhs};
+    }
 }
 
 auto consteval define(
@@ -110,16 +143,30 @@ auto consteval replace(
             replace(name, replacement, rest(body)));
 }
 
+template<label ArgName, atom_or_list FBody>
+auto consteval lambda(environment auto, List<ArgName, FBody> funcExpr)
+{
+    return merge(CI<LAMBDA>, funcExpr);
+}
+
 template<environment Env, label ArgName, atom_or_list FBody, atom_or_list Arg>
 auto consteval lambda(Env outer, List<ArgName, FBody, Arg> funcExpr)
 {
     auto argName = first(funcExpr);
-    auto body    = rest(funcExpr);
+    auto body    = first(rest(funcExpr));
     auto arg     = evaluate(outer, rest(rest(funcExpr))).second;
 
     auto newBody = replace(argName, arg, body);
 
     return evaluate(outer, newBody).second;
+}
+
+template<label ArgName, label... ArgNs, atom_or_list FBody>
+auto consteval lambda(
+        environment auto,
+        List<List<ArgName, ArgNs...>, FBody> funcExpr)
+{
+    return merge(CI<LAMBDA>, funcExpr);
 }
 
 template<
@@ -169,7 +216,7 @@ auto consteval condition_impl(environment auto outer, List<Cond, Cs...> conds)
     auto predicate = first(cond);
     auto body      = rest(cond);
 
-    auto [newEnv, predicateResult] = evaluate(outer, predicate)();
+    auto [newEnv, predicateResult] = evaluate(outer, predicate);
     if constexpr(std::is_same_v<decltype(predicateResult), Boolean<true>>) {
         return evaluate(newEnv, body).second;
     }
@@ -198,74 +245,125 @@ auto consteval evaluate(environment auto env, Atom a)
 template<list Line>
 requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
         environment auto env,
+        atom_or_list auto function,
         Line line)
 {
-    auto [newEnv, function] = evaluate(env, first(line));
-
     if constexpr(std::is_same_v<decltype(function), CoreInstruction<FIRST>>) {
-        return std::pair{newEnv, first(evaluate(newEnv, rest(line)).second)};
+        return std::pair{env, first(evaluate(env, line).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<REST>>) {
-        return std::pair{newEnv, rest(evaluate(newEnv, rest(line)).second)};
+        return std::pair{env, rest(evaluate(env, line).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<COMBINE>>) {
         return std::pair{
-                newEnv,
-                combine(evaluate(newEnv, first(rest(line))).second,
-                        evaluate(newEnv, rest(rest(line))).second)};
+                env,
+                combine(evaluate(env, first(line)).second,
+                        evaluate(env, rest(line)).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<CONDITION>>) {
-        return std::pair{newEnv, condition(newEnv, rest(line))};
+        return std::pair{env, condition(env, line)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<EQUAL>>) {
         return std::pair{
-                newEnv,
-                equal(evaluate(newEnv, first(rest(line))).second,
-                      evaluate(newEnv, rest(rest(line))).second)};
+                env,
+                equal(evaluate(env, first(line)).second,
+                      evaluate(env, rest(line)).second)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<ATOM>>) {
         return std::pair{
-                newEnv,
-                Bool<atom<decltype(evaluate(decltype(newEnv){}, rest(line))
-                                           .second)>>};
+                env,
+                Bool<atom<decltype(evaluate(decltype(env){}, line).second)>>};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<QUOTE>>) {
-        return std::pair{newEnv, rest(line)};
+        return std::pair{env, line};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<DEFINE>>) {
         return define(
-                newEnv,
-                evaluate(newEnv, first(rest(line))).second,
-                evaluate(newEnv, rest(rest(line))).second);
+                env,
+                evaluate(env, first(line)).second,
+                evaluate(env, rest(line)).second);
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<LAMBDA>>) {
-        return std::pair{newEnv, lambda(newEnv, rest(line))};
+        return std::pair{env, lambda(env, line)};
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
                               CoreInstruction<OUT>>) {
-        return std::pair{newEnv, Output{evaluate(newEnv, rest(line)).second}};
+        return std::pair{env, Output{evaluate(env, line).second}};
     }
     else if constexpr(std::is_same_v<decltype(function), CoreInstruction<IN>>) {
+        return std::pair{env, Input{env, first(line), rest(line)}};
+    }
+    else if constexpr(std::is_same_v<
+                              decltype(function),
+                              CoreInstruction<MUL>>) {
         return std::pair{
-                newEnv,
-                Input{newEnv, first(rest(line)), rest(rest(line))}};
+                env,
+                Int<decltype(evaluate(env, first(line)).second)::
+                            value* decltype(evaluate(env, rest(line))
+                                                    .second)::value>};
+    }
+    else if constexpr(std::is_same_v<
+                              decltype(function),
+                              CoreInstruction<SUB>>) {
+        return std::pair{
+                env,
+                Int<decltype(evaluate(env, first(line)).second)::value
+                    - decltype(evaluate(env, rest(line)).second)::value>};
+    }
+    else {
+        return std::pair{env, line};
+    }
+}
+
+template<list Line>
+requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
+        environment auto env,
+        Line line)
+{
+    auto result = evaluate(env, first(line));
+
+    if constexpr(
+            core_instruction<
+                    decltype(result.second)> || core_instruction<decltype(first(result.second))>) {
+        if constexpr(Length<Line>::value == 2) {
+            if constexpr(list<decltype(result.second)>) {
+                auto newLine =
+                        []<atom_or_list... As>(List<As...>, atom_or_list auto b)
+                {
+                    return List{As{}..., b};
+                }
+                (result.second, rest(line));
+
+                return evaluate(result.first, first(newLine), rest(newLine));
+            }
+            else {
+                return evaluate(result.first, result.second, rest(line));
+            }
+        }
+        else if constexpr(Length<Line>::value > 2) {
+            auto newLine = merge(result.second, rest(line));
+            return evaluate(result.first, first(newLine), rest(newLine));
+        }
+        else {
+            return result;
+        }
     }
     else {
         return std::pair{env, line};
@@ -373,10 +471,4 @@ template<
 Input(Env, Default, List<Labels, Branches>...)
         -> Input<Env, Default, List<Labels, Branches>...>;
 
-auto constexpr programA =
-        List{CI<LAMBDA>,
-             Lbl<"a">,
-             List{CI<FIRST>, Lbl<"a">},
-             List{Int<5>, Int<6>}};
-auto constexpr a = rest(programA);
 #endif    // ELDERLISTP_INTERPRETER_HPP

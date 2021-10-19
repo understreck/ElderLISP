@@ -21,7 +21,9 @@ enum CoreInstruction_enum {
     COMBINE,
     CONDITION,
     OUT,
-    IN
+    IN,
+    MUL,
+    SUB
 };
 
 template<CoreInstruction_enum ci>
@@ -184,6 +186,8 @@ template<atom_or_list T, atom_or_list U>
 struct List<T, U> : std::tuple<T, U> {
     constexpr List(T t, U u) : std::tuple<T, U>{t, u}
     {}
+
+    constexpr List() = default;
 };
 
 template<atom_or_list T, atom_or_list U, atom_or_list... Us>
@@ -191,6 +195,8 @@ struct List<T, U, Us...> : std::tuple<T, List<U, Us...>> {
     constexpr List(T t, U u, Us... us) :
                 std::tuple<T, List<U, Us...>>{t, List<U, Us...>{u, us...}}
     {}
+
+    constexpr List() = default;
 };
 
 template<class... Ts>

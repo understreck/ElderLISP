@@ -4,20 +4,27 @@
 #include "list.hpp"
 #include "environment.hpp"
 #include "interpreter.hpp"
-// auto constexpr programB = List{CI<OUT>, Lbl<"AyBee">};
-// CI<CONDITION>,
-// List{List{CI<EQUAL>,
-// True,
-// List{CI<EQUAL>,
-// List{CI<FIRST>, List{True, False}},
-// List{CI<QUOTE>, CI<FIRST>, List{True, False}}}},
-// Int<4>},
-// List{True, List{CI<FIRST>, CI<REST>, Int<5>, List{Int<1>, Int<2>}}},
-// List{False, NIL}};
-// auto constexpr b = evaluate(a, programB).second;
+
+auto constexpr lineOne =
+        List{CI<DEFINE>,
+             Lbl<"factorial">,
+             List{CI<LAMBDA>,
+                  Lbl<"i">,
+                  List{CI<CONDITION>,
+                       List{List{CI<EQUAL>, Lbl<"i">, Int<1>}, Int<1>},
+                       List{True,
+                            List{CI<MUL>,
+                                 Lbl<"i">,
+                                 List{Lbl<"factorial">,
+                                      List{CI<SUB>, Lbl<"i">, Int<1>}}}}}}};
+auto constexpr lineTwo = List{Lbl<"factorial">, Int<5>};
+
+auto constexpr a = evaluate(Environment{}, lineOne);
+auto constexpr b = evaluate(a.first, lineTwo).second;
 
 int
 main(int, char**)
 {
-    // b();
+    static_assert(b == 120);
+    std::cout << b;
 }
