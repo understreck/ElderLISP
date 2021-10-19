@@ -26,5 +26,6 @@ int
 main(int, char**)
 {
     static_assert(b == 120);
+
     std::cout << b;
 }
