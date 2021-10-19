@@ -78,30 +78,46 @@ auto consteval define(
             result};
 }
 
-template<label... Labels>
-auto consteval lambda_impl(
-        environment auto,
-        List<Labels...> args,
-        list auto funcBody)
+template<label... Args, list FBody>
+auto consteval lambda(environment auto outer, List<List<Args...>, FBody> l)
 {
-    return List{CI<LAMBDA>, args, funcBody};
+    return std::pair{outer, combine(CI<LAMBDA>, l)};
 }
 
-// template<environment Env, list L>
-// auto consteval lambda_impl(Env outer, List<>, L funcBody, List<>)
-//{
-// return evaluate(outer, funcBody);
-//}
+template<environment Env, label ArgName, atom_or_list FBody, atom_or_list Arg>
+auto consteval lambda(Env outer, List<ArgName, FBody, Arg> funcExpr)
+{
+    auto argName = first(funcExpr);
+    auto body    = rest(funcExpr);
+    auto arg     = evaluate(outer, rest(rest(funcExpr))).second;
 
-// template<environment Env, list L, atom_or_list Arg>
-// auto consteval lambda_impl(
-// Env outer,
-// List<Label> argName,
-// L funcBody,
-// List<Arg> arg)
-//{
-// return evaluate(outer, replace(first(argName), first(arg), funcBody));
-//}
+    auto newBody = replace(argName, arg, body);
+
+    return evaluate(outer, newBody).second;
+}
+
+template<
+        environment Env,
+        label ArgName,
+        label... ArgNs,
+        atom_or_list FBody,
+        atom_or_list Arg,
+        atom_or_list... Args>
+auto consteval lambda(
+        Env outer,
+        List<List<ArgName, ArgNs...>, FBody, List<Arg, Args...>> funcExpr)
+{
+    auto argName = first(first(funcExpr));
+    auto body    = first(rest(funcExpr));
+    auto arg     = evaluate(outer, first(rest(rest(funcExpr)))).second;
+
+    auto newBody = replace(argName, arg, body);
+
+    return lambda(
+            outer,
+            combine(rest(first(funcExpr)),
+                    combine(newBody, rest(rest(rest(funcExpr))))));
+}
 
 // auto consteval lambda =
 //[]<environment ReturnEnv>(environment auto outer, list auto... ls) {
@@ -217,6 +233,11 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
+                              CoreInstruction<LAMBDA>>) {
+        return std::pair{newEnv, lambda(newEnv, rest(line))};
+    }
+    else if constexpr(std::is_same_v<
+                              decltype(function),
                               CoreInstruction<OUT>>) {
         return std::pair{newEnv, Output{evaluate(newEnv, rest(line)).second}};
     }
@@ -230,8 +251,8 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
     }
 }
 
-auto constexpr ev = [](auto... a) {
-    return evaluate(a...);
+auto constexpr ev = [](auto... args) {
+    return evaluate(args...);
 };
 
 template<
