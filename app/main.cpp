@@ -5,10 +5,7 @@
 #include "environment.hpp"
 #include "interpreter.hpp"
 
-auto constexpr program =
-        List{CI<IN>,
-             List{CI<OUT>, List{C<'2'>}},
-             List{Lbl<'a', 'b'>, List{CI<OUT>, List{C<'1'>}}}};
+auto constexpr program = List{CI<OUT>, List{C<'2'>}};
 // CI<CONDITION>,
 // List{List{CI<EQUAL>,
 // True,
@@ -23,5 +20,5 @@ auto constexpr a = evaluate(Environment{}, program).second;
 int
 main(int, char**)
 {
-    auto b = a();
+    a();
 }

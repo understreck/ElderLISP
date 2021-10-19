@@ -77,17 +77,30 @@ concept is_specialisation_of =
         IsSpecalisationOf<std::remove_cvref_t<T>, U>::value;
 
 // Label
-template<character... Cs>
-struct Label : std::tuple<Cs...> {};
+template<size_t N>
+struct StringLiteral : std::array<char, N> {
+    constexpr StringLiteral(char const (&str)[N]) :
+                std::array<char, N>{std::to_array(str)}
+    {}
+};
 
-template<char... cs>
-auto constexpr Lbl = Label<Character<cs>...>{};
+template<size_t N>
+StringLiteral(char const (&)[N]) -> StringLiteral<N>;
+
+template<StringLiteral string>
+struct SLWrapper : std::string_view {
+    constexpr SLWrapper() : std::string_view{string.data()}
+    {}
+};
+
+template<StringLiteral string>
+auto constexpr Str = SLWrapper<string>{};
 
 template<class T>
-concept label = is_specialisation_of<T, Label>;
+concept string = std::is_same_v<T, SLWrapper<T::value>>;
 
 template<class T>
-concept data_type = core_instruction<T> || character<T> || label<T> || integer<
+concept data_type = core_instruction<T> || character<T> || string<T> || integer<
         T> || boolean<T>;
 
 template<class...>

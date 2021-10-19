@@ -68,7 +68,7 @@ auto consteval quote(atom_or_list auto aol)
 
 auto consteval define(
         environment auto env,
-        label auto lbl,
+        string auto lbl,
         atom_or_list auto aol)
 {
     auto [newEnv, result] = evaluate(env, aol);
@@ -76,7 +76,7 @@ auto consteval define(
     return std::pair{push_kvps(newEnv, KeyValuePair{lbl, result}), result};
 }
 
-template<label... Labels>
+template<string... Labels>
 auto consteval lambda_impl(
         environment auto,
         List<Labels...> args,
@@ -148,7 +148,7 @@ auto consteval condition(environment auto outer, List<Lists...> conditionals)
 template<atom Atom>
 auto consteval evaluate(environment auto env, Atom a)
 {
-    if constexpr(label<Atom>) {
+    if constexpr(string<Atom>) {
         return std::pair{env, find(env, a)};
     }
     else {
@@ -231,16 +231,10 @@ auto constexpr ev = [](auto... a) {
     return evaluate(a...);
 };
 
-template<character... Cs>
-auto label_to_string(Label<Cs...>)
-{
-    return std::string{Cs::value...};
-}
-
 template<
         environment Env,
         atom_or_list Default,
-        label... Labels,
+        string... Labels,
         atom_or_list... Branches>
 struct Input<Env, Default, List<Labels, Branches>...> {
     Env env;
@@ -251,12 +245,12 @@ struct Input<Env, Default, List<Labels, Branches>...> {
             std::invoke_result_t<decltype(ev), Env, Branches>...,
             std::invoke_result_t<decltype(ev), Env, Default>>;
 
-    template<label Label, atom_or_list Branch>
+    template<string Label, atom_or_list Branch>
     auto
     eval(std::string s, List<Label, Branch> last) const -> result_type
     {
         auto l = first(first(last));
-        if(s == label_to_string(l)) {
+        if(s == string_to_string(l)) {
             return evaluate(env, rest(first(last)));
         }
 
@@ -264,8 +258,8 @@ struct Input<Env, Default, List<Labels, Branches>...> {
     }
 
     template<
-            label Label,
-            label... RestL,
+            string Label,
+            string... RestL,
             atom_or_list Branch,
             atom_or_list... RestB>
     auto
@@ -274,7 +268,7 @@ struct Input<Env, Default, List<Labels, Branches>...> {
             -> result_type
     {
         auto l = first(first(branches));
-        if(s == label_to_string(l)) {
+        if(s == string_to_string(l)) {
             return evaluate(env, rest(first(branches)));
         }
 
@@ -294,7 +288,7 @@ struct Input<Env, Default, List<Labels, Branches>...> {
 template<
         environment Env,
         atom_or_list Default,
-        label Label,
+        string Label,
         atom_or_list Branch>
 struct Input<Env, Default, List<Label, Branch>> {
     Env env;
@@ -309,7 +303,7 @@ struct Input<Env, Default, List<Label, Branch>> {
     eval(std::string s, List<Label, Branch> last) const -> result_type
     {
         auto l = first(first(last));
-        if(s == label_to_string(l)) {
+        if(s == string_to_string(l)) {
             return evaluate(env, rest(first(last)));
         }
 
@@ -329,7 +323,7 @@ struct Input<Env, Default, List<Label, Branch>> {
 template<
         environment Env,
         atom_or_list Default,
-        label... Labels,
+        string... Labels,
         atom_or_list... Branches>
 Input(Env, Default, List<Labels, Branches>...)
         -> Input<Env, Default, List<Labels, Branches>...>;
