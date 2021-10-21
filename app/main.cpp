@@ -6,18 +6,18 @@
 #include "interpreter.hpp"
 
 auto constexpr lineOne =
-        List{CI<DEFINE>,
+        ListT{CI<DEFINE>,
              Lbl<"factorial">,
-             List{CI<LAMBDA>,
+             ListT{CI<LAMBDA>,
                   Lbl<"i">,
-                  List{CI<CONDITION>,
-                       List{List{CI<EQUAL>, Lbl<"i">, Int<1>}, Int<1>},
-                       List{True,
-                            List{CI<MUL>,
+                  ListT{CI<CONDITION>,
+                       ListT{ListT{CI<EQUAL>, Lbl<"i">, Int<1>}, Int<1>},
+                       ListT{True,
+                            ListT{CI<MUL>,
                                  Lbl<"i">,
-                                 List{Lbl<"factorial">,
-                                      List{CI<SUB>, Lbl<"i">, Int<1>}}}}}}};
-auto constexpr lineTwo = List{Lbl<"factorial">, Int<5>};
+                                 ListT{Lbl<"factorial">,
+                                      ListT{CI<SUB>, Lbl<"i">, Int<1>}}}}}}};
+auto constexpr lineTwo = ListT{Lbl<"factorial">, Int<5>};
 
 auto constexpr a = evaluate(Environment{}, lineOne);
 auto constexpr b = evaluate(a.first, lineTwo).second;

@@ -128,15 +128,15 @@ concept data_type = core_instruction<T> || character<T> || string<T> || label<
         T> || integer<T> || boolean<T>;
 
 template<class...>
-struct List;
+struct ListT;
 
 template<>
-struct List<> : std::tuple<> {};
+struct ListT<> {};
 
-auto constexpr NIL = List<>{};
+auto constexpr NIL = ListT<>{};
 
 template<class T>
-concept nil = std::is_same_v<T, List<>>;
+concept nil = std::is_same_v<T, ListT<>>;
 
 template<class...>
 struct Input;
@@ -145,7 +145,10 @@ template<class T>
 concept atom = nil<T> || data_type<T>;
 
 template<class T>
-concept list = is_specialisation_of<T, List>;
+concept atom_not_nil = atom<T> && !nil<T>;
+
+template<class T>
+concept list = is_specialisation_of<T, ListT>;
 
 template<class T>
 concept list_not_nil = list<T> && !nil<T>;
@@ -153,36 +156,47 @@ concept list_not_nil = list<T> && !nil<T>;
 template<class... Ts>
 concept atom_or_list = ((atom<Ts> || list<Ts>)&&...);
 
-template<atom_or_list T>
-struct List<T> : std::tuple<T> {};
+template<class... Ts>
+concept atom_or_list_not_nil = ((atom_not_nil<Ts> || list_not_nil<Ts>)&&...);
+
+template<atom_or_list_not_nil T>
+struct ListT<T> : std::tuple<T> {};
 
 template<atom_or_list T, atom_or_list U>
-struct List<T, U> : std::tuple<T, U> {
-    constexpr List(T t, U u) : std::tuple<T, U>{t, u}
+struct ListT<T, U> : std::tuple<T, U> {
+    constexpr ListT(T t, U u) : std::tuple<T, U>{t, u}
     {}
-
-    constexpr List() = default;
-};
-
-template<atom_or_list T, atom_or_list U, atom_or_list... Us>
-struct List<T, U, Us...> : std::tuple<T, List<U, Us...>> {
-    constexpr List(T t, U u, Us... us) :
-                std::tuple<T, List<U, Us...>>{t, List<U, Us...>{u, us...}}
-    {}
-
-    constexpr List() = default;
 };
 
 template<class... Ts>
-List(Ts...) -> List<Ts...>;
+ListT(Ts...) -> ListT<Ts...>;
 
-template<class T>
-struct LengthT {};
+auto consteval List()
+{
+    return NIL;
+}
 
-template<class... Ts>
-struct LengthT<List<Ts...>> : std::integral_constant<size_t, sizeof...(Ts)> {};
+auto consteval List(nil auto)
+{
+    return NIL;
+}
 
-template<class T>
-auto constexpr Length = LengthT<T>{};
+template<atom_or_list_not_nil Element>
+auto consteval List(Element element)
+{
+    return ListT<Element>{element};
+}
+
+auto consteval List(nil auto, atom_or_list auto... elements)
+{
+    return ListT{List(elements...)};
+}
+
+auto consteval List(
+        atom_or_list_not_nil auto element,
+        atom_or_list auto... elements)
+{
+    return ListT{element, List(elements...)};
+}
 
 #endif    // ELDERLISTP_LIST_HPP

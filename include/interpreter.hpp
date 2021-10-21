@@ -13,25 +13,15 @@ auto consteval quote(atom_or_list auto aol)
     return aol;
 }
 
-auto consteval first(atom auto)
-{
-    return NIL;
-}
-
 auto consteval first(list_not_nil auto l)
 {
     return std::get<0>(l);
 }
 
-auto consteval rest(atom auto)
+template<atom_or_list_not_nil... Ts>
+auto consteval rest(ListT<Ts...> l)
 {
-    return NIL;
-}
-
-template<list_not_nil L>
-auto consteval rest(L l)
-{
-    if constexpr(Length<L> >= 2) {
+    if constexpr(sizeof...(Ts) > 1) {
         return std::get<1>(l);
     }
     else {
@@ -65,12 +55,11 @@ auto consteval combine(atom_or_list auto lhs, atom_or_list auto rhs)
     if constexpr(equal(lhs, NIL)) {
         return rhs;
     }
-
-    if constexpr(equal(rhs, NIL)) {
+    else if constexpr(equal(rhs, NIL)) {
         return lhs;
     }
     else {
-        return List{lhs, rhs};
+        return ListT{lhs, rhs};
     }
 }
 
@@ -79,13 +68,10 @@ auto consteval append(nil auto, atom_or_list auto b)
     return b;
 }
 
-template<atom_or_list A>
-requires(!nil<A>) auto consteval append(A a, atom_or_list auto b)
+auto consteval append(list_not_nil auto a, list_not_nil auto b)
 {
     return combine(first(a), append(rest(a), b));
 }
-
-auto constexpr a = append(List{Int<5>}, NIL);
 
 auto consteval define(
         environment auto env,
@@ -100,7 +86,7 @@ auto consteval define(
 }
 
 template<label... Args, list FBody>
-auto consteval lambda(environment auto outer, List<List<Args...>, FBody> l)
+auto consteval lambda(environment auto outer, ListT<ListT<Args...>, FBody> l)
 {
     return std::pair{outer, combine(CI<LAMBDA>, l)};
 }
@@ -132,13 +118,13 @@ auto consteval replace(
 }
 
 template<label ArgName, atom_or_list FBody>
-auto consteval lambda(environment auto, List<ArgName, FBody> funcExpr)
+auto consteval lambda(environment auto, ListT<ArgName, FBody> funcExpr)
 {
     return append(CI<LAMBDA>, funcExpr);
 }
 
 template<environment Env, label ArgName, atom_or_list FBody, atom_or_list Arg>
-auto consteval lambda(Env outer, List<ArgName, FBody, Arg> funcExpr)
+auto consteval lambda(Env outer, ListT<ArgName, FBody, Arg> funcExpr)
 {
     auto argName = first(funcExpr);
     auto body    = first(rest(funcExpr));
@@ -152,7 +138,7 @@ auto consteval lambda(Env outer, List<ArgName, FBody, Arg> funcExpr)
 template<label ArgName, label... ArgNs, atom_or_list FBody>
 auto consteval lambda(
         environment auto,
-        List<List<ArgName, ArgNs...>, FBody> funcExpr)
+        ListT<ListT<ArgName, ArgNs...>, FBody> funcExpr)
 {
     return append(CI<LAMBDA>, funcExpr);
 }
@@ -166,7 +152,7 @@ template<
         atom_or_list... Args>
 auto consteval lambda(
         Env outer,
-        List<List<ArgName, ArgNs...>, FBody, List<Arg, Args...>> funcExpr)
+        ListT<ListT<ArgName, ArgNs...>, FBody, ListT<Arg, Args...>> funcExpr)
 {
     auto argName = first(first(funcExpr));
     auto body    = first(rest(funcExpr));
@@ -189,7 +175,7 @@ auto consteval condition_impl(environment auto outer, conditional auto cond)
     auto body      = rest(cond);
 
     auto [newEnv, predicateResult] = evaluate(outer, predicate);
-    if constexpr(std::is_same_v<decltype(predicateResult), Boolean<true>>) {
+    if constexpr(predicateResult) {
         return evaluate(newEnv, body).second;
     }
     else {
@@ -198,14 +184,14 @@ auto consteval condition_impl(environment auto outer, conditional auto cond)
 }
 
 template<conditional Cond, conditional... Cs>
-auto consteval condition_impl(environment auto outer, List<Cond, Cs...> conds)
+auto consteval condition_impl(environment auto outer, ListT<Cond, Cs...> conds)
 {
     auto cond      = first(conds);
     auto predicate = first(cond);
     auto body      = rest(cond);
 
     auto [newEnv, predicateResult] = evaluate(outer, predicate);
-    if constexpr(std::is_same_v<decltype(predicateResult), Boolean<true>>) {
+    if constexpr(predicateResult) {
         return evaluate(newEnv, body).second;
     }
     else {
@@ -214,7 +200,7 @@ auto consteval condition_impl(environment auto outer, List<Cond, Cs...> conds)
 }
 
 template<list... Lists>
-auto consteval condition(environment auto outer, List<Lists...> conditionals)
+auto consteval condition(environment auto outer, ListT<Lists...> conditionals)
 {
     return condition_impl(outer, conditionals);
 };
@@ -230,11 +216,10 @@ auto consteval evaluate(environment auto env, Atom a)
     }
 }
 
-template<list Line>
-requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
+auto consteval evaluate(
         environment auto env,
         atom_or_list auto function,
-        Line line)
+        atom_or_list auto line)
 {
     if constexpr(equal(function, FIRST)) {
         return std::pair{env, first(evaluate(env, line).second)};
@@ -274,28 +259,26 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
     else if constexpr(equal(function, LAMBDA)) {
         return std::pair{env, lambda(env, line)};
     }
+    else if constexpr(equal(function, LIST)) {
+        return std::pair{env, List(line)};
+    }
     else if constexpr(equal(function, MUL)) {
         return std::pair{
                 env,
-                Int<decltype(evaluate(env, first(line)).second)::
-                            value* decltype(evaluate(env, rest(line))
-                                                    .second)::value>};
+                Int<evaluate(env, first(line)).second
+                    * evaluate(env, rest(line)).second>};
     }
     else if constexpr(equal(function, SUB)) {
         return std::pair{
                 env,
-                Int<decltype(evaluate(env, first(line)).second)::value
-                    - decltype(evaluate(env, rest(line)).second)::value>};
+                Int<evaluate(env, first(line)).second
+                    - evaluate(env, rest(line)).second>};
     }
     else {
         return std::pair{env, line};
     }
 }
-
-template<list Line>
-requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
-        environment auto env,
-        Line line)
+auto consteval evaluate(environment auto env, list_not_nil auto line)
 {
     auto result = evaluate(env, first(line));
 
@@ -304,10 +287,10 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
                     decltype(result.second)> || core_instruction<decltype(first(result.second))>) {
         if constexpr(Length<Line>::value == 2) {
             if constexpr(list<decltype(result.second)>) {
-                auto newLine =
-                        []<atom_or_list... As>(List<As...>, atom_or_list auto b)
+                auto newLine = [
+                ]<atom_or_list... As>(ListT<As...>, atom_or_list auto b)
                 {
-                    return List{As{}..., b};
+                    return List(As{}..., b);
                 }
                 (result.second, rest(line));
 
