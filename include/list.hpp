@@ -20,8 +20,7 @@ enum CoreInstruction_enum {
     REST,
     COMBINE,
     CONDITION,
-    OUT,
-    IN,
+    LIST,
     MUL,
     SUB
 };
@@ -131,50 +130,25 @@ concept data_type = core_instruction<T> || character<T> || string<T> || label<
 template<class...>
 struct List;
 
-template<class>
-struct Output;
-
-template<character... Cs>
-struct Output<List<Cs...>> : List<Cs...> {
-    auto
-    operator()() const
-    {
-        ((std::cout << Cs::value), ...);
-    }
-};
-
-template<StringLiteral s>
-struct Output<SLWrapper<s>> : SLWrapper<s> {
-    using SLWrapper<s>::value;
-    auto
-    operator()() const
-    {
-        for(auto const c : value) {
-            std::cout << c;
-        }
-    }
-};
-
-template<character... Cs>
-Output(List<Cs...>) -> Output<List<Cs...>>;
-
-template<StringLiteral s>
-Output(SLWrapper<s>) -> Output<SLWrapper<s>>;
-
 template<>
 struct List<> : std::tuple<> {};
 
 auto constexpr NIL = List<>{};
 
+template<class T>
+concept nil = std::is_same_v<T, List<>>;
+
 template<class...>
 struct Input;
 
 template<class T>
-concept atom = std::is_same_v<T, List<>> || data_type<
-        T> || is_specialisation_of<T, Output> || is_specialisation_of<T, Input>;
+concept atom = nil<T> || data_type<T>;
 
 template<class T>
 concept list = is_specialisation_of<T, List>;
+
+template<class T>
+concept list_not_nil = list<T> && !nil<T>;
 
 template<class... Ts>
 concept atom_or_list = ((atom<Ts> || list<Ts>)&&...);
@@ -203,9 +177,12 @@ template<class... Ts>
 List(Ts...) -> List<Ts...>;
 
 template<class T>
-struct Length {};
+struct LengthT {};
 
 template<class... Ts>
-struct Length<List<Ts...>> : std::integral_constant<size_t, sizeof...(Ts)> {};
+struct LengthT<List<Ts...>> : std::integral_constant<size_t, sizeof...(Ts)> {};
+
+template<class T>
+auto constexpr Length = LengthT<T>{};
 
 #endif    // ELDERLISTP_LIST_HPP

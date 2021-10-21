@@ -8,18 +8,6 @@
 
 auto consteval evaluate(environment auto, atom_or_list auto...);
 
-template<atom LHS, atom RHS>
-auto consteval equal(LHS, RHS) requires std::is_same_v<LHS, RHS>
-{
-    return True;
-}
-
-template<atom LHS, atom RHS>
-auto consteval equal(LHS, RHS) requires(!std::is_same_v<LHS, RHS>)
-{
-    return False;
-}
-
 auto consteval quote(atom_or_list auto aol)
 {
     return aol;
@@ -30,8 +18,7 @@ auto consteval first(atom auto)
     return NIL;
 }
 
-template<list L>
-auto consteval first(L l) requires(!std::is_same_v<L, List<>>)
+auto consteval first(list_not_nil auto l)
 {
     return std::get<0>(l);
 }
@@ -41,20 +28,45 @@ auto consteval rest(atom auto)
     return NIL;
 }
 
-template<list L>
-auto consteval rest(L l) requires(!std::is_same_v<L, List<>>)
+template<list_not_nil L>
+auto consteval rest(L l)
 {
-    return std::get<1>(l);
+    if constexpr(Length<L> >= 2) {
+        return std::get<1>(l);
+    }
+    else {
+        return NIL;
+    }
 }
 
-template<atom_or_list LHS, atom_or_list RHS>
-auto consteval combine(LHS lhs, RHS rhs)
+template<atom LHS, atom RHS>
+auto consteval equal(LHS, RHS)
 {
-    if constexpr(std::is_same_v<LHS, List<>>) {
+    return Bool<std::is_same_v<LHS, RHS>>;
+}
+
+auto consteval equal(list_not_nil auto, atom auto)
+{
+    return False;
+}
+
+auto consteval equal(atom auto lhs, list_not_nil auto rhs)
+{
+    return equal(rhs, lhs);
+}
+
+auto consteval equal(list_not_nil auto lhs, list_not_nil auto rhs)
+{
+    return equal(first(lhs), first(rhs)) && equal(rest(lhs), rest(rhs));
+}
+
+auto consteval combine(atom_or_list auto lhs, atom_or_list auto rhs)
+{
+    if constexpr(equal(lhs, NIL)) {
         return rhs;
     }
 
-    if constexpr(std::is_same_v<List<>, RHS>) {
+    if constexpr(equal(rhs, NIL)) {
         return lhs;
     }
     else {
@@ -62,15 +74,19 @@ auto consteval combine(LHS lhs, RHS rhs)
     }
 }
 
-auto consteval append(List<>, atom_or_list auto b)
+auto consteval append(nil auto, atom_or_list auto b)
 {
     return b;
 }
 
-auto constexpr append(atom_or_list auto a, atom_or_list auto b)
+template<atom_or_list A>
+requires (!nil<A>)
+auto consteval append(A a, atom_or_list auto b)
 {
     return combine(first(a), append(rest(a), b));
 }
+
+auto constexpr a = append(List{Int<5>}, NIL);
 
 auto consteval define(
         environment auto env,
@@ -277,14 +293,6 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
     }
     else if constexpr(std::is_same_v<
                               decltype(function),
-                              CoreInstruction<OUT>>) {
-        return std::pair{env, Output{evaluate(env, line).second}};
-    }
-    else if constexpr(std::is_same_v<decltype(function), CoreInstruction<IN>>) {
-        return std::pair{env, Input{env, first(line), rest(line)}};
-    }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
                               CoreInstruction<MUL>>) {
         return std::pair{
                 env,
@@ -346,102 +354,4 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
 auto constexpr ev = [](auto... args) {
     return evaluate(args...);
 };
-
-template<
-        environment Env,
-        atom_or_list Default,
-        string... Strings,
-        atom_or_list... Branches>
-struct Input<Env, Default, List<Strings, Branches>...> {
-    Env env;
-    Default def;
-    List<List<Strings, Branches>...> branches;
-
-    using result_type = std::variant<
-            std::invoke_result_t<decltype(ev), Env, Branches>...,
-            std::invoke_result_t<decltype(ev), Env, Default>>;
-
-    template<string String, atom_or_list Branch>
-    auto
-    eval(std::string s, List<String, Branch> last) const -> result_type
-    {
-        auto l = first(first(last));
-        if(s == string_to_string(l)) {
-            return evaluate(env, rest(first(last)));
-        }
-
-        return evaluate(env, def);
-    }
-
-    template<
-            string String,
-            string... RestL,
-            atom_or_list Branch,
-            atom_or_list... RestB>
-    auto
-    eval(std::string s,
-         List<List<String, Branch>, List<RestL, RestB>...> branches) const
-            -> result_type
-    {
-        auto l = first(first(branches));
-        if(s == string_to_string(l)) {
-            return evaluate(env, rest(first(branches)));
-        }
-
-        return eval(env, rest(branches));
-    }
-
-    auto
-    operator()() const -> result_type
-    {
-        auto string = std::string{};
-        std::cin >> string;
-
-        return eval(string, branches);
-    }
-};
-
-template<
-        environment Env,
-        atom_or_list Default,
-        string String,
-        atom_or_list Branch>
-struct Input<Env, Default, List<String, Branch>> {
-    Env env;
-    Default def;
-    List<String, Branch> branch;
-
-    using result_type = std::variant<
-            std::invoke_result_t<decltype(ev), Env, Branch>,
-            std::invoke_result_t<decltype(ev), Env, Default>>;
-
-    auto
-    eval(std::string s, List<String, Branch> last) const -> result_type
-    {
-        auto l = first(first(last));
-        if(s == string_to_string(l)) {
-            return evaluate(env, rest(first(last)));
-        }
-
-        return evaluate(env, def);
-    }
-
-    auto
-    operator()() const -> result_type
-    {
-        auto string = std::string{};
-        std::cin >> string;
-
-        return eval(string, branch);
-    }
-};
-
-template<
-        environment Env,
-        atom_or_list Default,
-        string... Labels,
-        atom_or_list... Branches>
-Input(Env, Default, List<Labels, Branches>...)
-        -> Input<Env, Default, List<Labels, Branches>...>;
-
 #endif    // ELDERLISTP_INTERPRETER_HPP
