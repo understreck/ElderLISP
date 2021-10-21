@@ -80,8 +80,7 @@ auto consteval append(nil auto, atom_or_list auto b)
 }
 
 template<atom_or_list A>
-requires (!nil<A>)
-auto consteval append(A a, atom_or_list auto b)
+requires(!nil<A>) auto consteval append(A a, atom_or_list auto b)
 {
     return combine(first(a), append(rest(a), b));
 }
@@ -237,72 +236,52 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
         atom_or_list auto function,
         Line line)
 {
-    if constexpr(std::is_same_v<decltype(function), CoreInstruction<FIRST>>) {
+    if constexpr(equal(function, FIRST)) {
         return std::pair{env, first(evaluate(env, line).second)};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<REST>>) {
+    else if constexpr(equal(function, REST)) {
         return std::pair{env, rest(evaluate(env, line).second)};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<COMBINE>>) {
+    else if constexpr(equal(function, COMBINE)) {
         return std::pair{
                 env,
                 combine(evaluate(env, first(line)).second,
                         evaluate(env, rest(line)).second)};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<CONDITION>>) {
+    else if constexpr(equal(function, CONDITION)) {
         return std::pair{env, condition(env, line)};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<EQUAL>>) {
+    else if constexpr(equal(function, EQUAL)) {
         return std::pair{
                 env,
                 equal(evaluate(env, first(line)).second,
                       evaluate(env, rest(line)).second)};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<ATOM>>) {
+    else if constexpr(equal(function, ATOM)) {
         return std::pair{
                 env,
                 Bool<atom<decltype(evaluate(decltype(env){}, line).second)>>};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<QUOTE>>) {
+    else if constexpr(equal(function, QUOTE)) {
         return std::pair{env, line};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<DEFINE>>) {
+    else if constexpr(equal(function, DEFINE)) {
         return define(
                 env,
                 evaluate(env, first(line)).second,
                 evaluate(env, rest(line)).second);
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<LAMBDA>>) {
+    else if constexpr(equal(function, LAMBDA)) {
         return std::pair{env, lambda(env, line)};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<MUL>>) {
+    else if constexpr(equal(function, MUL)) {
         return std::pair{
                 env,
                 Int<decltype(evaluate(env, first(line)).second)::
                             value* decltype(evaluate(env, rest(line))
                                                     .second)::value>};
     }
-    else if constexpr(std::is_same_v<
-                              decltype(function),
-                              CoreInstruction<SUB>>) {
+    else if constexpr(equal(function, SUB)) {
         return std::pair{
                 env,
                 Int<decltype(evaluate(env, first(line)).second)::value
