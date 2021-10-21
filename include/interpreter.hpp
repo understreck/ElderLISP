@@ -8,14 +8,14 @@
 
 auto consteval evaluate(environment auto, atom_or_list auto...);
 
-template<atom_or_list LHS, atom_or_list RHS>
-requires std::is_same_v<LHS, RHS>
-auto consteval equal(LHS, RHS)
+template<atom LHS, atom RHS>
+auto consteval equal(LHS, RHS) requires std::is_same_v<LHS, RHS>
 {
     return True;
 }
 
-auto consteval equal(atom_or_list auto, atom_or_list auto)
+template<atom LHS, atom RHS>
+auto consteval equal(LHS, RHS) requires(!std::is_same_v<LHS, RHS>)
 {
     return False;
 }
@@ -24,64 +24,27 @@ auto consteval quote(atom_or_list auto aol)
 {
     return aol;
 }
-auto consteval merge(atom auto a, atom auto b)
-{
-    return List{a, b};
-}
 
-template<atom_or_list... Bs>
-auto constexpr merge(atom auto a, List<Bs...> bs)
-{
-    if constexpr(equal(a, NIL)) {
-        return bs;
-    }
-    else {
-        return List{a, Bs{}...};
-    }
-}
-
-template<atom_or_list... As>
-auto constexpr merge(List<As...> as, atom auto b)
-{
-    if constexpr(equal(b, NIL)) {
-        return as;
-    }
-    else {
-        return List{As{}..., b};
-    }
-}
-
-template<atom_or_list... As, atom_or_list... Bs>
-auto constexpr merge(List<As...>, List<Bs...>)
-{
-    return List{As{}..., Bs{}...};
-}
-
-auto consteval first(atom_or_list auto)
+auto consteval first(atom auto)
 {
     return NIL;
 }
 
-template<class T, class... Us>
-auto consteval first(List<T, Us...> l)
+template<list L>
+auto consteval first(L l) requires(!std::is_same_v<L, List<>>)
 {
     return std::get<0>(l);
 }
 
-auto consteval rest_impl(atom_or_list auto)
+auto consteval rest(atom auto)
 {
     return NIL;
 }
 
-template<class T, class U, class... Us>
-auto consteval rest_impl(List<T, U, Us...> l)
+template<list L>
+auto consteval rest(L l) requires(!std::is_same_v<L, List<>>)
 {
     return std::get<1>(l);
-}
-
-auto consteval rest(atom_or_list auto l)
-{
-    return rest_impl(l);
 }
 
 template<atom_or_list LHS, atom_or_list RHS>
@@ -97,6 +60,16 @@ auto consteval combine(LHS lhs, RHS rhs)
     else {
         return List{lhs, rhs};
     }
+}
+
+auto consteval append(List<>, atom_or_list auto b)
+{
+    return b;
+}
+
+auto constexpr append(atom_or_list auto a, atom_or_list auto b)
+{
+    return combine(first(a), append(rest(a), b));
 }
 
 auto consteval define(
@@ -146,7 +119,7 @@ auto consteval replace(
 template<label ArgName, atom_or_list FBody>
 auto consteval lambda(environment auto, List<ArgName, FBody> funcExpr)
 {
-    return merge(CI<LAMBDA>, funcExpr);
+    return append(CI<LAMBDA>, funcExpr);
 }
 
 template<environment Env, label ArgName, atom_or_list FBody, atom_or_list Arg>
@@ -166,7 +139,7 @@ auto consteval lambda(
         environment auto,
         List<List<ArgName, ArgNs...>, FBody> funcExpr)
 {
-    return merge(CI<LAMBDA>, funcExpr);
+    return append(CI<LAMBDA>, funcExpr);
 }
 
 template<
@@ -358,7 +331,7 @@ requires(!std::is_same_v<Line, List<>>) auto consteval evaluate(
             }
         }
         else if constexpr(Length<Line>::value > 2) {
-            auto newLine = merge(result.second, rest(line));
+            auto newLine = append(result.second, rest(line));
             return evaluate(result.first, first(newLine), rest(newLine));
         }
         else {
