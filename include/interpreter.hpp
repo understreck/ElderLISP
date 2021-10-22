@@ -138,10 +138,11 @@ auto consteval lambda(environment auto outer, list_not_nil auto funcExpr)
         if constexpr(equal(rest(argNames), NIL)) {
             return evaluate(outer, newBody).second;
         }
+        else if constexpr(equal(rest(args), NIL)) {
+            return List(CI<LAMBDA>, rest(argNames), newBody);
+        }
         else {
-            return lambda(
-                    outer,
-                    combine(rest(argNames), combine(newBody, rest(args))));
+            return lambda(outer, List(rest(argNames), newBody, rest(args)));
         }
     }
 }
@@ -226,15 +227,18 @@ auto consteval evaluate(environment auto env, list_not_nil auto line)
 {
     auto result = evaluate(env, first(line)).second;
 
-    if constexpr(core_instruction<decltype(result)>) {
+    if constexpr(is_core_instruction(result)) {
         return evaluate(env, result, rest(line));
     }
-    else if constexpr(atom<decltype(result)>) {
-        return std::pair{env, line};
+    else if constexpr(is_atom(result)) {
+        return std::pair{env, combine(result, rest(line))};
     }
-    else if constexpr(core_instruction<decltype(first(result))>) {
+    else if constexpr(is_core_instruction(first(result))) {
         auto newLine = append(result, rest(line));
         return evaluate(env, first(newLine), rest(newLine));
+    }
+    else {
+        return std::pair{env, append(result, rest(line))};
     }
 }
 #endif    // ELDERLISTP_INTERPRETER_HPP

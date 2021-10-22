@@ -5,27 +5,26 @@
 #include "environment.hpp"
 #include "interpreter.hpp"
 
-auto constexpr lineOne =
+auto constexpr Append =
         List(CI<DEFINE>,
-             Lbl<"factorial">,
+             Lbl<"append">,
              List(CI<LAMBDA>,
-                  List(Lbl<"i">),
+                  List(Lbl<"left">, Lbl<"right">),
                   List(CI<IF>,
-                       List(CI<EQUAL>, Lbl<"i">, Int<1>),
-                       Int<1>,
-                       List(CI<MUL>,
-                            Lbl<"i">,
-                            List(Lbl<"factorial">,
-                                 List(List(CI<SUB>, Lbl<"i">, Int<1>)))))));
-auto constexpr lineTwo = List(Lbl<"factorial">, List(Int<5>));
+                       List(CI<EQUAL>, Lbl<"left">, NIL),
+                       Lbl<"right">,
+                       List(CI<COMBINE>,
+                            List(CI<FIRST>, Lbl<"left">),
+                            List(Lbl<"append">,
+                                 List(List(CI<REST>, Lbl<"left">),
+                                      Lbl<"right">))))));
+auto constexpr lineTwo =
+        List(Lbl<"append">, List(List(Int<5>, Int<6>), List(Int<7>, Int<8>)));
 
-auto constexpr a = evaluate(Environment{}, lineOne);
+auto constexpr a = evaluate(Environment{}, Append);
 auto constexpr b = evaluate(a.first, lineTwo).second;
 
 int
 main(int, char**)
 {
-    static_assert(b == 120);
-
-    std::cout << b;
 }

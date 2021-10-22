@@ -67,6 +67,12 @@ auto constexpr Bool = Boolean<b>{};
 auto constexpr True  = Bool<true>;
 auto constexpr False = Bool<false>;
 
+template<class T>
+auto consteval is_core_instruction(T)
+{
+    return Bool<core_instruction<T>>;
+}
+
 // IsSpecalisationOf
 template<class T, template<class...> class U>
 struct IsSpecalisationOf : std::false_type {};
@@ -143,6 +149,11 @@ struct Input;
 
 template<class T>
 concept atom = nil<T> || data_type<T>;
+
+template<class T>
+auto consteval is_atom(T) {
+    return Bool<atom<T>>;
+}
 
 template<class T>
 concept atom_not_nil = atom<T> && !nil<T>;
