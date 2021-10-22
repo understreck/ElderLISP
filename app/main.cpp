@@ -4,6 +4,7 @@
 #include "list.hpp"
 #include "environment.hpp"
 #include "interpreter.hpp"
+#include "lexer.hpp"
 
 auto constexpr Append =
         List(CI<DEFINE>,

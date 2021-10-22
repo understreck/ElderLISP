@@ -1,4 +1,8 @@
 add_executable(ElderInterp main.cpp)
+
+target_link_libraries(ElderInterp
+    PRIVATE ctre::ctre)
+
 target_include_directories(ElderInterp
     PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
