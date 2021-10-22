@@ -19,7 +19,7 @@ enum CoreInstruction_enum {
     FIRST,
     REST,
     COMBINE,
-    CONDITION,
+    IF,
     LIST,
     MUL,
     SUB
@@ -159,13 +159,21 @@ concept atom_or_list = ((atom<Ts> || list<Ts>)&&...);
 template<class... Ts>
 concept atom_or_list_not_nil = ((atom_not_nil<Ts> || list_not_nil<Ts>)&&...);
 
-template<atom_or_list_not_nil T>
-struct ListT<T> : std::tuple<T> {};
-
 template<atom_or_list T, atom_or_list U>
 struct ListT<T, U> : std::tuple<T, U> {
     constexpr ListT(T t, U u) : std::tuple<T, U>{t, u}
     {}
+
+    constexpr ListT() = default;
+};
+
+template<atom_or_list T, atom_or_list U, atom_or_list... Us>
+struct ListT<T, U, Us...> : std::tuple<T, ListT<U, Us...>> {
+    constexpr ListT(T t, U u, Us... us) :
+                std::tuple<T, ListT<U, Us...>>{t, ListT<U, Us...>{u, us...}}
+    {}
+
+    constexpr ListT() = default;
 };
 
 template<class... Ts>
@@ -176,27 +184,15 @@ auto consteval List()
     return NIL;
 }
 
-auto consteval List(nil auto)
-{
-    return NIL;
-}
-
 template<atom_or_list_not_nil Element>
 auto consteval List(Element element)
 {
-    return ListT<Element>{element};
+    return ListT{element, NIL};
 }
 
-auto consteval List(nil auto, atom_or_list auto... elements)
+auto consteval List(atom_or_list auto element, atom_or_list auto... elements)
 {
-    return ListT{List(elements...)};
-}
-
-auto consteval List(
-        atom_or_list_not_nil auto element,
-        atom_or_list auto... elements)
-{
-    return ListT{element, List(elements...)};
+    return ListT{element, elements..., NIL};
 }
 
 #endif    // ELDERLISTP_LIST_HPP

@@ -18,60 +18,68 @@ auto consteval first(list_not_nil auto l)
     return std::get<0>(l);
 }
 
-template<atom_or_list_not_nil... Ts>
-auto consteval rest(ListT<Ts...> l)
+auto consteval rest(list auto l)
 {
-    if constexpr(sizeof...(Ts) > 1) {
-        return std::get<1>(l);
-    }
-    else {
-        return NIL;
-    }
+    return std::get<1>(l);
 }
 
-template<atom LHS, atom RHS>
+template<atom_or_list LHS, atom_or_list RHS>
 auto consteval equal(LHS, RHS)
 {
     return Bool<std::is_same_v<LHS, RHS>>;
 }
 
-auto consteval equal(list_not_nil auto, atom auto)
+auto consteval combine(atom auto lhs, atom_not_nil auto rhs)
 {
-    return False;
+    return ListT{lhs, rhs};
 }
 
-auto consteval equal(atom auto lhs, list_not_nil auto rhs)
+auto consteval combine(atom_or_list auto lhs, nil auto)
 {
-    return equal(rhs, lhs);
+    return List(lhs);
 }
 
-auto consteval equal(list_not_nil auto lhs, list_not_nil auto rhs)
+template<atom_or_list... Elements>
+requires(sizeof...(Elements) > 0) auto consteval combine(
+        atom_or_list auto lhs,
+        ListT<Elements...>)
 {
-    return equal(first(lhs), first(rhs)) && equal(rest(lhs), rest(rhs));
+    return ListT{lhs, Elements{}...};
 }
 
-auto consteval combine(atom_or_list auto lhs, atom_or_list auto rhs)
+auto consteval length(nil auto)
 {
-    if constexpr(equal(lhs, NIL)) {
-        return rhs;
-    }
-    else if constexpr(equal(rhs, NIL)) {
-        return lhs;
-    }
-    else {
-        return ListT{lhs, rhs};
-    }
+    return 0;
 }
 
-auto consteval append(nil auto, atom_or_list auto b)
+auto consteval length(list_not_nil auto l)
+{
+    return 1 + length(rest(l));
+}
+
+auto consteval append(nil auto, list auto b)
 {
     return b;
 }
 
-auto consteval append(list_not_nil auto a, list_not_nil auto b)
+auto consteval append(list_not_nil auto a, list auto b)
 {
     return combine(first(a), append(rest(a), b));
 }
+
+auto consteval condition(
+        environment auto outer,
+        boolean auto predicate,
+        atom_or_list auto ifTrue,
+        atom_or_list auto ifFalse)
+{
+    if constexpr(predicate) {
+        return evaluate(outer, ifTrue).second;
+    }
+    else {
+        return evaluate(outer, ifFalse).second;
+    }
+};
 
 auto consteval define(
         environment auto env,
@@ -85,21 +93,10 @@ auto consteval define(
             result};
 }
 
-template<label... Args, list FBody>
-auto consteval lambda(environment auto outer, ListT<ListT<Args...>, FBody> l)
-{
-    return std::pair{outer, combine(CI<LAMBDA>, l)};
-}
-
 template<label L>
 auto consteval replace(L, atom_or_list auto replacement, L)
 {
     return replacement;
-}
-
-auto consteval replace(label auto, atom_or_list auto, label auto body)
-{
-    return body;
 }
 
 auto consteval replace(label auto, atom_or_list auto, atom auto body)
@@ -110,7 +107,7 @@ auto consteval replace(label auto, atom_or_list auto, atom auto body)
 auto consteval replace(
         label auto name,
         atom_or_list auto replacement,
-        list auto body)
+        list_not_nil auto body)
 {
     return combine(
             replace(name, replacement, first(body)),
@@ -120,90 +117,34 @@ auto consteval replace(
 template<label ArgName, atom_or_list FBody>
 auto consteval lambda(environment auto, ListT<ArgName, FBody> funcExpr)
 {
-    return append(CI<LAMBDA>, funcExpr);
+    return combine(CI<LAMBDA>, funcExpr);
 }
 
-template<environment Env, label ArgName, atom_or_list FBody, atom_or_list Arg>
-auto consteval lambda(Env outer, ListT<ArgName, FBody, Arg> funcExpr)
+auto consteval lambda(environment auto outer, list_not_nil auto funcExpr)
 {
-    auto argName = first(funcExpr);
-    auto body    = first(rest(funcExpr));
-    auto arg     = evaluate(outer, rest(rest(funcExpr))).second;
-
-    auto newBody = replace(argName, arg, body);
-
-    return evaluate(outer, newBody).second;
-}
-
-template<label ArgName, label... ArgNs, atom_or_list FBody>
-auto consteval lambda(
-        environment auto,
-        ListT<ListT<ArgName, ArgNs...>, FBody> funcExpr)
-{
-    return append(CI<LAMBDA>, funcExpr);
-}
-
-template<
-        environment Env,
-        label ArgName,
-        label... ArgNs,
-        atom_or_list FBody,
-        atom_or_list Arg,
-        atom_or_list... Args>
-auto consteval lambda(
-        Env outer,
-        ListT<ListT<ArgName, ArgNs...>, FBody, ListT<Arg, Args...>> funcExpr)
-{
-    auto argName = first(first(funcExpr));
-    auto body    = first(rest(funcExpr));
-    auto arg     = evaluate(outer, first(rest(rest(funcExpr)))).second;
-
-    auto newBody = replace(argName, arg, body);
-
-    return lambda(
-            outer,
-            combine(rest(first(funcExpr)),
-                    combine(newBody, rest(rest(rest(funcExpr))))));
-}
-
-template<class L>
-concept conditional = Length<L>::value == 2;
-
-auto consteval condition_impl(environment auto outer, conditional auto cond)
-{
-    auto predicate = first(cond);
-    auto body      = rest(cond);
-
-    auto [newEnv, predicateResult] = evaluate(outer, predicate);
-    if constexpr(predicateResult) {
-        return evaluate(newEnv, body).second;
+    if constexpr(length(funcExpr) == 2) {
+        return combine(CI<LAMBDA>, funcExpr);
     }
-    else {
-        return NIL;
+    else if constexpr(length(funcExpr) == 3) {
+        auto argNames = first(funcExpr);
+        auto body     = first(rest(funcExpr));
+        auto args     = first(rest(rest(funcExpr)));
+
+        auto newBody =
+                replace(first(argNames),
+                        evaluate(outer, first(args)).second,
+                        body);
+
+        if constexpr(equal(rest(argNames), NIL)) {
+            return evaluate(outer, newBody).second;
+        }
+        else {
+            return lambda(
+                    outer,
+                    combine(rest(argNames), combine(newBody, rest(args))));
+        }
     }
 }
-
-template<conditional Cond, conditional... Cs>
-auto consteval condition_impl(environment auto outer, ListT<Cond, Cs...> conds)
-{
-    auto cond      = first(conds);
-    auto predicate = first(cond);
-    auto body      = rest(cond);
-
-    auto [newEnv, predicateResult] = evaluate(outer, predicate);
-    if constexpr(predicateResult) {
-        return evaluate(newEnv, body).second;
-    }
-    else {
-        return condition_impl(outer, rest(conds));
-    }
-}
-
-template<list... Lists>
-auto consteval condition(environment auto outer, ListT<Lists...> conditionals)
-{
-    return condition_impl(outer, conditionals);
-};
 
 template<atom Atom>
 auto consteval evaluate(environment auto env, Atom a)
@@ -218,102 +159,82 @@ auto consteval evaluate(environment auto env, Atom a)
 
 auto consteval evaluate(
         environment auto env,
-        atom_or_list auto function,
+        core_instruction auto function,
         atom_or_list auto line)
 {
-    if constexpr(equal(function, FIRST)) {
+    if constexpr(equal(function, CI<FIRST>)) {
         return std::pair{env, first(evaluate(env, line).second)};
     }
-    else if constexpr(equal(function, REST)) {
+    else if constexpr(equal(function, CI<REST>)) {
         return std::pair{env, rest(evaluate(env, line).second)};
     }
-    else if constexpr(equal(function, COMBINE)) {
+    else if constexpr(equal(function, CI<COMBINE>)) {
         return std::pair{
                 env,
                 combine(evaluate(env, first(line)).second,
                         evaluate(env, rest(line)).second)};
     }
-    else if constexpr(equal(function, CONDITION)) {
-        return std::pair{env, condition(env, line)};
+    else if constexpr(equal(function, CI<IF>)) {
+        auto predicate = evaluate(env, first(line)).second;
+        return std::pair{
+                env,
+                condition(
+                        env,
+                        predicate,
+                        first(rest(line)),
+                        first(rest(rest(line))))};
     }
-    else if constexpr(equal(function, EQUAL)) {
+    else if constexpr(equal(function, CI<EQUAL>)) {
         return std::pair{
                 env,
                 equal(evaluate(env, first(line)).second,
-                      evaluate(env, rest(line)).second)};
+                      evaluate(env, first(rest(line))).second)};
     }
-    else if constexpr(equal(function, ATOM)) {
-        return std::pair{
-                env,
-                Bool<atom<decltype(evaluate(decltype(env){}, line).second)>>};
+    else if constexpr(equal(function, CI<ATOM>)) {
+        return std::pair{env, atom<decltype(line)>};
     }
-    else if constexpr(equal(function, QUOTE)) {
+    else if constexpr(equal(function, CI<QUOTE>)) {
         return std::pair{env, line};
     }
-    else if constexpr(equal(function, DEFINE)) {
+    else if constexpr(equal(function, CI<DEFINE>)) {
         return define(
                 env,
                 evaluate(env, first(line)).second,
-                evaluate(env, rest(line)).second);
+                evaluate(env, first(rest(line))).second);
     }
-    else if constexpr(equal(function, LAMBDA)) {
+    else if constexpr(equal(function, CI<LAMBDA>)) {
         return std::pair{env, lambda(env, line)};
     }
-    else if constexpr(equal(function, LIST)) {
+    else if constexpr(equal(function, CI<LIST>)) {
         return std::pair{env, List(line)};
     }
-    else if constexpr(equal(function, MUL)) {
+    else if constexpr(equal(function, CI<MUL>)) {
         return std::pair{
                 env,
                 Int<evaluate(env, first(line)).second
-                    * evaluate(env, rest(line)).second>};
+                    * evaluate(env, first(rest(line))).second>};
     }
-    else if constexpr(equal(function, SUB)) {
+    else if constexpr(equal(function, CI<SUB>)) {
         return std::pair{
                 env,
                 Int<evaluate(env, first(line)).second
-                    - evaluate(env, rest(line)).second>};
-    }
-    else {
-        return std::pair{env, line};
+                    - evaluate(env, first(rest(line))).second>};
     }
 }
+
 auto consteval evaluate(environment auto env, list_not_nil auto line)
 {
-    auto result = evaluate(env, first(line));
+    auto result = evaluate(env, first(line)).second;
 
-    if constexpr(
-            core_instruction<
-                    decltype(result.second)> || core_instruction<decltype(first(result.second))>) {
-        if constexpr(Length<Line>::value == 2) {
-            if constexpr(list<decltype(result.second)>) {
-                auto newLine = [
-                ]<atom_or_list... As>(ListT<As...>, atom_or_list auto b)
-                {
-                    return List(As{}..., b);
-                }
-                (result.second, rest(line));
-
-                return evaluate(result.first, first(newLine), rest(newLine));
-            }
-            else {
-                return evaluate(result.first, result.second, rest(line));
-            }
-        }
-        else if constexpr(Length<Line>::value > 2) {
-            auto newLine = append(result.second, rest(line));
-            return evaluate(result.first, first(newLine), rest(newLine));
-        }
-        else {
-            return result;
-        }
+    if constexpr(core_instruction<decltype(result)>) {
+        return evaluate(env, result, rest(line));
     }
-    else {
+    else if constexpr(atom<decltype(result)>) {
         return std::pair{env, line};
     }
+    else if constexpr(core_instruction<decltype(first(result))>) {
+        auto newLine = append(result, rest(line));
+        return evaluate(env, first(newLine), rest(newLine));
+    }
 }
-
-auto constexpr ev = [](auto... args) {
-    return evaluate(args...);
-};
 #endif    // ELDERLISTP_INTERPRETER_HPP
