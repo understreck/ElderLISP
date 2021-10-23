@@ -1,9 +1,7 @@
 #ifndef ELDERLISTP_LIST_HPP
 #define ELDERLISTP_LIST_HPP
 
-#include <ctll.hpp>
-
-#include <cstddef>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 
@@ -86,16 +84,34 @@ concept is_specialisation_of =
         IsSpecalisationOf<std::remove_cvref_t<T>, U>::value;
 
 // Label
-template<ctll::fixed_string string>
+template<size_t N>
+struct FixedString : std::array<char, N> {
+    constexpr FixedString(char const (&str)[N + 1])
+    {
+        for(auto i = 0ul; i < N; i++) {
+            this->operator[](i) = str[i];
+        }
+    }
+
+    constexpr operator std::string_view() const
+    {
+        return std::string_view{this->data(), N};
+    }
+};
+
+template<size_t N>
+FixedString(char const (&)[N]) -> FixedString<N - 1>;
+
+template<FixedString string>
 struct LabelT : std::integral_constant<decltype(string), string> {};
 
-template<ctll::fixed_string string>
+template<FixedString string>
 auto constexpr Lbl = LabelT<string>{};
 
 template<class T>
 struct IsLabelT : std::false_type {};
 
-template<ctll::fixed_string s>
+template<FixedString s>
 struct IsLabelT<LabelT<s>> : std::true_type {};
 
 template<class T>

@@ -1,50 +1,24 @@
 #ifndef ELDER_LISP_LEXER_HPP
 #define ELDER_LISP_LEXER_HPP
 
+#include <string_view>
 #include <tuple>
 #include <utility>
 
-#include <ctll/fixed_string.hpp>
-#include <ctll.hpp>
-#include <ctre.hpp>
-
 #include "list.hpp"
 
-auto constexpr matches = std::tuple{
-        ctre::match<"\\s*lambda(\\s|\\(|\\))">,    // CI<LAMBDA>
-        ctre::match<"\\s*define(\\s|\\(|\\))">,    // CI<DEFINE>
-        ctre::match<"\\s*quote(\\s|\\(|\\))">,     // CI<QUOTE>
-        ctre::match<"\\s*atom(\\s|\\(|\\))">,      // CI<ATOM>
-        ctre::match<"\\s*=(\\s|\\(|\\))">,         // CI<EQUAL
-        ctre::match<"\\s*car(\\s|\\(|\\))">,       // CI<FIRST>
-        ctre::match<"\\s*cdr(\\s|\\(|\\))">,       // CI<REST>
-        ctre::match<"\\s*cons(\\s|\\(|\\))">,      // CI<COMBINE>
-        ctre::match<"\\s*if(\\s|\\(|\\))">,        // CI<IF>
-        ctre::match<"\\s*list(\\s|\\(|\\))">,      // CI<LIST>
-        ctre::match<"\\s*\\*(\\s|\\(|\\))">,       // CI<MUL>
-        ctre::match<"\\s*-(\\s|\\(|\\))">,         // CI<SUB>
-        ctre::match<"\\s*\\+(\\s|\\(|\\))">,       // CI<ADD>
-        ctre::match<"\\s*\\/(\\s|\\(|\\))">,       // CI<DIV>
-        ctre::match<"\\s*%(\\s|\\(|\\))">,         // CI<MOD>
-        ctre::match<"\\s*(T|F)(\\s|\\(|\\))">,     // Bool
-        ctre::match<"\\s*'(\\S)'">,                // Char
-        ctre::match<"\\s*(\\d+)">,                 // Digit
-        ctre::match<"\\s*\\(">,                    // Open List
-        ctre::match<"\\s*\\)">,                    // Close list
-        ctre::match<"\\s*(\\S+)">,                 // Label
-        ctre::match<"\\s*$">,                      // Trailing whitespace
-};
+template<FixedString string>
+struct LineT : std::integral_constant<decltype(string), string> {};
 
-template<ctll::fixed_string m_string>
-struct LineT : std::integral_constant<decltype(m_string), m_string> {};
-
-template<ctll::fixed_string string>
+template<FixedString string>
 auto constexpr Line = LineT<string>{};
+
+// auto constexpr l = FixedString{"lambda"};
 
 template<class T>
 struct IsLineT : std::false_type {};
 
-template<ctll::fixed_string s>
+template<FixedString s>
 struct IsLineT<LineT<s>> : std::true_type {};
 
 template<class T>
@@ -54,74 +28,97 @@ concept c_line = IsLineT<T>::value;
 // auto consteval parse(c_line auto line, std::tuple<Elements...> elements)
 //{}
 
-template<size_t position, size_t tupleIndex = 0>
-auto consteval matchNext(c_line auto line)
+auto consteval is_whitespace(char c)
 {
-    auto constexpr s = std::basic_string_view{
-            line.value.begin() + position,
-            line.value.end()};
-    if constexpr(auto constexpr match = std::get<tupleIndex>(matches)(s)) {
-        struct ret {
-            size_t index;
-            decltype(match) match;
-        };
-        return ret{tupleIndex, match};
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+template<FixedString line>
+auto consteval next_non_whitespace(LineT<line>, size_t position)
+{
+    for(auto i = position; i < line.size(); i++) {
+        if(!is_whitespace(line[i])) {
+            return i;
+        }
     }
-    else {
-        return matchNext<position, tupleIndex + 1>(line);
+
+    return line.size();
+}
+
+template<size_t start, FixedString line, FixedString token>
+auto consteval compare(LineT<line>, LineT<token>)
+{
+    auto constexpr begin = line.begin() + start;
+    auto constexpr end   = begin + token.size();
+    if(std::string_view{begin, end} == token) {
+        if(line.end() == end) {
+            return true;
+        }
+
+        auto nextChar = *end;
+        return is_whitespace(nextChar) || nextChar == '(' || nextChar == ')';
     }
+
+    return false;
 }
 
 template<size_t position = 0>
 auto consteval parse(c_line auto line)
 {
-    auto constexpr m = matchNext<position>(line);
+    auto constexpr i = next_non_whitespace(line, position);
 
-    if constexpr(m.index == LAMBDA) {
+    if constexpr(compare<i>(line, Line<"lambda">)) {
         return CI<LAMBDA>;
     }
-    else if constexpr(m.index == DEFINE) {
-        return CI<DEFINE>;
-    }
-    else if constexpr(m.index == QUOTE) {
-        return CI<QUOTE>;
-    }
-    else if constexpr(m.index == ATOM) {
-        return CI<ATOM>;
-    }
-    else if constexpr(m.index == EQUAL) {
-        return CI<EQUAL>;
-    }
-    else if constexpr(m.index == FIRST) {
-        return CI<FIRST>;
-    }
-    else if constexpr(m.index == REST) {
-        return CI<REST>;
-    }
-    else if constexpr(m.index == COMBINE) {
-        return CI<COMBINE>;
-    }
-    else if constexpr(m.index == IF) {
-        return CI<IF>;
-    }
-    else if constexpr(m.index == LIST) {
-        return CI<LIST>;
-    }
-    else if constexpr(m.index == MUL) {
-        return CI<MUL>;
-    }
-    else if constexpr(m.index == SUB) {
-        return CI<SUB>;
-    }
-    else if constexpr(m.index == ADD) {
-        return CI<ADD>;
-    }
-    else if constexpr(m.index == DIV) {
-        return CI<DIV>;
-    }
-    else if constexpr(m.index == MOD) {
-        return CI<MOD>;
-    }
+    // else if constexpr(index == DEFINE) {
+    // return CI<DEFINE>;
+    //}
+    // else if constexpr(index == QUOTE) {
+    // return CI<QUOTE>;
+    //}
+    // else if constexpr(index == ATOM) {
+    // return CI<ATOM>;
+    //}
+    // else if constexpr(index == EQUAL) {
+    // return CI<EQUAL>;
+    //}
+    // else if constexpr(index == FIRST) {
+    // return CI<FIRST>;
+    //}
+    // else if constexpr(index == REST) {
+    // return CI<REST>;
+    //}
+    // else if constexpr(index == COMBINE) {
+    // return CI<COMBINE>;
+    //}
+    // else if constexpr(index == IF) {
+    // return CI<IF>;
+    //}
+    // else if constexpr(index == LIST) {
+    // return CI<LIST>;
+    //}
+    // else if constexpr(index == MUL) {
+    // return CI<MUL>;
+    //}
+    // else if constexpr(index == SUB) {
+    // return CI<SUB>;
+    //}
+    // else if constexpr(index == ADD) {
+    // return CI<ADD>;
+    //}
+    // else if constexpr(index == DIV) {
+    // return CI<DIV>;
+    //}
+    // else if constexpr(index == MOD) {
+    // return CI<MOD>;
+    //}
+    // else if constexpr(index == 15) {
+    // auto constexpr m = [match]() {
+    // auto [c0, c1, c2] = match;
+    // return c1;
+    //}();
+    // return Bool<m == ctll::fixed_string{"T"}>;
+    //}
 }
 
 auto constexpr p = parse(Line<"lambda)">);
