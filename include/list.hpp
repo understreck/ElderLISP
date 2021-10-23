@@ -1,13 +1,11 @@
 #ifndef ELDERLISTP_LIST_HPP
 #define ELDERLISTP_LIST_HPP
 
+#include <ctll.hpp>
+
 #include <cstddef>
-#include <iostream>
-#include <string_view>
-#include <string>
 #include <tuple>
 #include <type_traits>
-#include <variant>
 
 // CoreInstruction
 enum CoreInstruction_enum {
@@ -85,45 +83,36 @@ concept is_specialisation_of =
         IsSpecalisationOf<std::remove_cvref_t<T>, U>::value;
 
 // Label
-template<size_t N>
-struct StringLiteral : std::array<char, N> {
-    consteval StringLiteral(char const (&str)[N]) :
-                std::array<char, N>{std::to_array(str)}
-    {}
-};
 
-template<size_t N>
-StringLiteral(char const (&)[N]) -> StringLiteral<N>;
-
-template<StringLiteral string>
+template<ctll::fixed_string string>
 struct SLWrapper {
     static auto constexpr value{string};
 };
 
-template<StringLiteral string>
+template<ctll::fixed_string string>
 auto constexpr Str = SLWrapper<string>{};
 
 template<class T>
 struct IsSLWrapper : std::false_type {};
 
-template<StringLiteral s>
+template<ctll::fixed_string s>
 struct IsSLWrapper<SLWrapper<s>> : std::true_type {};
 
 template<class T>
 concept string = IsSLWrapper<T>::value;
 
-template<StringLiteral string>
+template<ctll::fixed_string string>
 struct LblSLWrapper {
     static auto constexpr value{string};
 };
 
-template<StringLiteral string>
+template<ctll::fixed_string string>
 auto constexpr Lbl = LblSLWrapper<string>{};
 
 template<class T>
 struct IsLblSLWrapper : std::false_type {};
 
-template<StringLiteral s>
+template<ctll::fixed_string s>
 struct IsLblSLWrapper<LblSLWrapper<s>> : std::true_type {};
 
 template<class T>
@@ -151,7 +140,8 @@ template<class T>
 concept atom = nil<T> || data_type<T>;
 
 template<class T>
-auto consteval is_atom(T) {
+auto consteval is_atom(T)
+{
     return Bool<atom<T>>;
 }
 
