@@ -39,12 +39,34 @@ auto consteval combine(atom_or_list auto lhs, nil auto)
     return List(lhs);
 }
 
-template<atom_or_list... Elements>
-requires(sizeof...(Elements) > 0) auto consteval combine(
+template<size_t ElementsLeft>
+requires(ElementsLeft == 1) auto consteval unroll_right(
         atom_or_list auto lhs,
-        ListT<Elements...>)
+        atom_or_list auto lastElement,
+        atom_or_list auto... elements)
 {
-    return ListT{lhs, Elements{}...};
+    return ListT{lhs, elements..., lastElement};
+}
+
+template<size_t ElementsLeft>
+requires(ElementsLeft >= 2) auto consteval unroll_right(
+        atom_or_list auto lhs,
+        list_not_nil auto restOfList,
+        atom_or_list auto... elements)
+{
+    return unroll_right<ElementsLeft - 1>(
+            lhs,
+            rest(restOfList),
+            elements...,
+            first(restOfList));
+}
+
+template<atom_or_list... Elements>
+requires(sizeof...(Elements) >= 2) auto consteval combine(
+        atom_or_list auto lhs,
+        ListT<Elements...> rhs)
+{
+    return unroll_right<sizeof...(Elements) - 1>(lhs, rest(rhs), first(rhs));
 }
 
 auto consteval length(nil auto)
