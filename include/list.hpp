@@ -20,7 +20,10 @@ enum CoreInstruction_enum {
     IF,
     LIST,
     MUL,
-    SUB
+    SUB,
+    ADD,
+    DIV,
+    MOD
 };
 
 template<CoreInstruction_enum ci>
@@ -90,7 +93,13 @@ template<ctll::fixed_string string>
 auto constexpr Lbl = LabelT<string>{};
 
 template<class T>
-concept label = std::is_same_v<T, LabelT<T::value>>;
+struct IsLabelT : std::false_type {};
+
+template<ctll::fixed_string s>
+struct IsLabelT<LabelT<s>> : std::true_type {};
+
+template<class T>
+concept label = IsLabelT<T>::value;
 
 template<class T>
 concept data_type = core_instruction<T> || character<T> || label<T> || integer<

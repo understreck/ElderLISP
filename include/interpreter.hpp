@@ -251,6 +251,24 @@ auto consteval evaluate(
                 Int<evaluate(env, first(line)).second
                     - evaluate(env, first(rest(line))).second>};
     }
+    else if constexpr(equal(function, CI<ADD>)) {
+        return std::pair{
+                env,
+                Int<evaluate(env, first(line)).second
+                    + evaluate(env, first(rest(line))).second>};
+    }
+    else if constexpr(equal(function, CI<DIV>)) {
+        return std::pair{
+                env,
+                Int<evaluate(env, first(line)).second
+                    / evaluate(env, first(rest(line))).second>};
+    }
+    else if constexpr(equal(function, CI<MOD>)) {
+        return std::pair{
+                env,
+                Int<evaluate(env, first(line)).second
+                    % evaluate(env, first(rest(line))).second>};
+    }
 }
 
 auto consteval evaluate(environment auto env, list_not_nil auto line)
