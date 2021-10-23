@@ -83,44 +83,18 @@ concept is_specialisation_of =
         IsSpecalisationOf<std::remove_cvref_t<T>, U>::value;
 
 // Label
+template<ctll::fixed_string string>
+struct LabelT : std::integral_constant<decltype(string), string> {};
 
 template<ctll::fixed_string string>
-struct SLWrapper {
-    static auto constexpr value{string};
-};
-
-template<ctll::fixed_string string>
-auto constexpr Str = SLWrapper<string>{};
+auto constexpr Lbl = LabelT<string>{};
 
 template<class T>
-struct IsSLWrapper : std::false_type {};
-
-template<ctll::fixed_string s>
-struct IsSLWrapper<SLWrapper<s>> : std::true_type {};
+concept label = std::is_same_v<T, LabelT<T::value>>;
 
 template<class T>
-concept string = IsSLWrapper<T>::value;
-
-template<ctll::fixed_string string>
-struct LblSLWrapper {
-    static auto constexpr value{string};
-};
-
-template<ctll::fixed_string string>
-auto constexpr Lbl = LblSLWrapper<string>{};
-
-template<class T>
-struct IsLblSLWrapper : std::false_type {};
-
-template<ctll::fixed_string s>
-struct IsLblSLWrapper<LblSLWrapper<s>> : std::true_type {};
-
-template<class T>
-concept label = IsLblSLWrapper<T>::value;
-
-template<class T>
-concept data_type = core_instruction<T> || character<T> || string<T> || label<
-        T> || integer<T> || boolean<T>;
+concept data_type = core_instruction<T> || character<T> || label<T> || integer<
+        T> || boolean<T>;
 
 template<class...>
 struct ListT;
