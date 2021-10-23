@@ -70,48 +70,48 @@ auto consteval parse(c_line auto line)
     if constexpr(compare<i>(line, Line<"lambda">)) {
         return CI<LAMBDA>;
     }
-    // else if constexpr(index == DEFINE) {
-    // return CI<DEFINE>;
-    //}
-    // else if constexpr(index == QUOTE) {
-    // return CI<QUOTE>;
-    //}
-    // else if constexpr(index == ATOM) {
-    // return CI<ATOM>;
-    //}
-    // else if constexpr(index == EQUAL) {
-    // return CI<EQUAL>;
-    //}
-    // else if constexpr(index == FIRST) {
-    // return CI<FIRST>;
-    //}
-    // else if constexpr(index == REST) {
-    // return CI<REST>;
-    //}
-    // else if constexpr(index == COMBINE) {
-    // return CI<COMBINE>;
-    //}
-    // else if constexpr(index == IF) {
-    // return CI<IF>;
-    //}
-    // else if constexpr(index == LIST) {
-    // return CI<LIST>;
-    //}
-    // else if constexpr(index == MUL) {
-    // return CI<MUL>;
-    //}
-    // else if constexpr(index == SUB) {
-    // return CI<SUB>;
-    //}
-    // else if constexpr(index == ADD) {
-    // return CI<ADD>;
-    //}
-    // else if constexpr(index == DIV) {
-    // return CI<DIV>;
-    //}
-    // else if constexpr(index == MOD) {
-    // return CI<MOD>;
-    //}
+    if constexpr(compare<i>(line, Line<"define">)) {
+        return CI<DEFINE>;
+    }
+    if constexpr(compare<i>(line, Line<"quote">)) {
+        return CI<QUOTE>;
+    }
+    if constexpr(compare<i>(line, Line<"atom?">)) {
+        return CI<ATOM>;
+    }
+    if constexpr(compare<i>(line, Line<"eq?">)) {
+        return CI<EQUAL>;
+    }
+    if constexpr(compare<i>(line, Line<"car">)) {
+        return CI<FIRST>;
+    }
+    if constexpr(compare<i>(line, Line<"cdr">)) {
+        return CI<REST>;
+    }
+    if constexpr(compare<i>(line, Line<"cons">)) {
+        return CI<COMBINE>;
+    }
+    if constexpr(compare<i>(line, Line<"if">)) {
+        return CI<IF>;
+    }
+    if constexpr(compare<i>(line, Line<"list">)) {
+        return CI<LIST>;
+    }
+    if constexpr(compare<i>(line, Line<"*">)) {
+        return CI<MUL>;
+    }
+    if constexpr(compare<i>(line, Line<"-">)) {
+        return CI<SUB>;
+    }
+    if constexpr(compare<i>(line, Line<"+">)) {
+        return CI<ADD>;
+    }
+    if constexpr(compare<i>(line, Line<"/">)) {
+        return CI<DIV>;
+    }
+    if constexpr(compare<i>(line, Line<"%">)) {
+        return CI<MOD>;
+    }
     // else if constexpr(index == 15) {
     // auto constexpr m = [match]() {
     // auto [c0, c1, c2] = match;
