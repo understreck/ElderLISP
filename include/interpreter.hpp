@@ -24,9 +24,17 @@ auto consteval rest(list auto l)
 }
 
 template<atom_or_list LHS, atom_or_list RHS>
-auto consteval equal(LHS, RHS)
+requires std::equality_comparable_with<LHS, RHS>
+auto consteval equal(LHS lhs, RHS rhs)
 {
-    return Bool<std::is_same_v<LHS, RHS>>;
+    return Bool<lhs == rhs>;
+}
+
+template<atom_or_list LHS, atom_or_list RHS>
+requires(
+        !std::equality_comparable_with<LHS, RHS>) auto consteval equal(LHS, RHS)
+{
+    return False;
 }
 
 auto consteval combine(atom auto lhs, atom_not_nil auto rhs)

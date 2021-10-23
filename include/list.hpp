@@ -126,7 +126,7 @@ template<class...>
 struct ListT;
 
 template<>
-struct ListT<> {};
+struct ListT<> : std::tuple<> {};
 
 auto constexpr NIL = ListT<>{};
 
