@@ -4,6 +4,7 @@
 #include <string_view>
 #include <tuple>
 #include <type_traits>
+#include <bit>
 
 // CoreInstruction
 enum CoreInstruction_enum {
@@ -86,12 +87,16 @@ concept is_specialisation_of =
 // Label
 template<size_t N>
 struct FixedString : std::array<char, N> {
-    constexpr FixedString(char const (&str)[N + 1])
-    {
-        for(auto i = 0ul; i < N; i++) {
-            this->operator[](i) = str[i];
-        }
-    }
+    template<size_t... indexes>
+    consteval FixedString(
+            char const (&str)[N + 1],
+            std::index_sequence<indexes...>) :
+                std::array<char, N>{str[indexes]...}
+    {}
+
+    consteval FixedString(char const (&str)[N + 1]) :
+                FixedString{str, std::make_index_sequence<N>{}}
+    {}
 
     constexpr operator std::string_view() const
     {
