@@ -51,7 +51,7 @@ struct Integer : std::integral_constant<int, i> {};
 template<class T>
 concept integer = std::is_same_v<T, Integer<T::value>>;
 
-template<int i>
+template<long i>
 auto constexpr Int = Integer<i>{};
 
 // Boolean
