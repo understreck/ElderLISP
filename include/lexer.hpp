@@ -120,72 +120,100 @@ auto consteval parse_integer(LineT<line>) -> std::optional<ParseIntegerResult>
     return {{.value = number * sign, .length = length, .sign = sign == -1}};
 }
 
-template<class T>
-struct ParseResult {
-    int nextPos;
-    T value;
-};
+template<size_t position, FixedString line>
+auto consteval next_end_of_token(LineT<line>)
+{
+    for(auto i = position; i < line.size(); i++) {
+        if(is_end_of_token(line[i])) {
+            return i;
+        }
+    }
 
-template<class T>
-ParseResult(int, T) -> ParseResult<T>;
+    return line.size();
+}
 
-template<size_t position = 0>
-auto consteval parse(c_line auto line)
+template<class... elements, size_t... indices>
+auto consteval make_list_from(
+        std::tuple<elements...> es,
+        std::index_sequence<indices...>)
+{
+    return ListT{std::get<indices>(es)..., NIL};
+}
+
+template<class... elements>
+auto consteval make_list_from(std::tuple<elements...> es)
+{
+    return make_list_from(es, std::make_index_sequence<sizeof...(elements)>{});
+}
+
+auto consteval make_list_from(std::tuple<>)
+{
+    return NIL;
+}
+
+template<size_t position = 0, class... elements>
+auto consteval parse(c_line auto line, std::tuple<elements...> es)
 {
     auto constexpr i = next_non_whitespace(line, position);
 
     static_assert(i != line.value.size(), "Reached EOL prematurely");
 
-    if constexpr(compare<i>(line, Line<"lambda">)) {
-        return ParseResult{i + 6, CI<LAMBDA>};
+    if constexpr(line.value[i] == '(') {
+        return make_list_from(parse<i + 1>(line, std::tuple{}));
+    }
+    if constexpr(line.value[i] == ')') {
+        return es;
+    }
+    else if constexpr(compare<i>(line, Line<"lambda">)) {
+        return parse<i + 6>(line, std::tuple_cat(es, std::tuple{CI<LAMBDA>}));
     }
     else if constexpr(compare<i>(line, Line<"define">)) {
-        return ParseResult{i + 6, CI<DEFINE>};
+        return parse<i + 6>(line, std::tuple_cat(es, std::tuple{CI<DEFINE>}));
     }
     else if constexpr(compare<i>(line, Line<"quote">)) {
-        return ParseResult{i + 5, CI<QUOTE>};
+        return parse<i + 5>(line, std::tuple_cat(es, std::tuple{CI<QUOTE>}));
     }
     else if constexpr(compare<i>(line, Line<"atom?">)) {
-        return ParseResult{i + 5, CI<ATOM>};
+        return parse<i + 5>(line, std::tuple_cat(es, std::tuple{CI<ATOM>}));
     }
     else if constexpr(compare<i>(line, Line<"eq?">)) {
-        return ParseResult{i + 3, CI<EQUAL>};
+        return parse<i + 3>(line, std::tuple_cat(es, std::tuple{CI<EQUAL>}));
     }
     else if constexpr(compare<i>(line, Line<"car">)) {
-        return ParseResult{i + 3, CI<FIRST>};
+        return parse<i + 3>(line, std::tuple_cat(es, std::tuple{CI<FIRST>}));
     }
     else if constexpr(compare<i>(line, Line<"cdr">)) {
-        return ParseResult{i + 3, CI<REST>};
+        return parse<i + 3>(line, std::tuple_cat(es, std::tuple{CI<REST>}));
     }
     else if constexpr(compare<i>(line, Line<"cons">)) {
-        return ParseResult{i + 4, CI<COMBINE>};
+        return parse<i + 4>(line, std::tuple_cat(es, std::tuple{CI<COMBINE>}));
     }
     else if constexpr(compare<i>(line, Line<"if">)) {
-        return ParseResult{i + 2, CI<IF>};
+        return parse<i + 2>(line, std::tuple_cat(es, std::tuple{CI<IF>}));
     }
     else if constexpr(compare<i>(line, Line<"list">)) {
-        return ParseResult{i + 4, CI<LIST>};
+        return parse<i + 4>(line, std::tuple_cat(es, std::tuple{CI<LIST>}));
     }
     else if constexpr(compare<i>(line, Line<"*">)) {
-        return ParseResult{i + 1, CI<MUL>};
+        return parse<i + 1>(line, std::tuple_cat(es, std::tuple{CI<MUL>}));
     }
     else if constexpr(compare<i>(line, Line<"-">)) {
-        return ParseResult{i + 1, CI<SUB>};
+        return parse<i + 1>(line, std::tuple_cat(es, std::tuple{CI<SUB>}));
     }
     else if constexpr(compare<i>(line, Line<"+">)) {
-        return ParseResult{i + 1, CI<ADD>};
+        return parse<i + 1>(line, std::tuple_cat(es, std::tuple{CI<ADD>}));
     }
     else if constexpr(compare<i>(line, Line<"/">)) {
-        return ParseResult{i + 1, CI<DIV>};
+        return parse<i + 1>(line, std::tuple_cat(es, std::tuple{CI<DIV>}));
     }
     else if constexpr(compare<i>(line, Line<"%">)) {
-        return ParseResult{i + 1, CI<MOD>};
+        return parse<i + 1>(line, std::tuple_cat(es, std::tuple{CI<MOD>}));
     }
     else if constexpr(compare<i>(line, Line<"F">)) {
-        return ParseResult{i + 1, False};
+        return parse<i + 1>(line, std::tuple_cat(es, std::tuple{False}));
     }
     else if constexpr(compare<i>(line, Line<"T">)) {
-        return ParseResult{i + 1, True};
+        return parse<i + 1>(line, std::tuple_cat(es, std::tuple{True}));
     }
     else if constexpr(line.value[i] == '\'') {
         static_assert(
@@ -195,15 +223,115 @@ auto consteval parse(c_line auto line)
                 line.value[i + 2] == '\'',
                 "No closing ' character when constructing Char");
 
-        return ParseResult{i + 3, C<line.value[i + 1]>};
+        return parse<i + 3>(
+                line,
+                std::tuple_cat(es, std::tuple{C<line.value[i + 1]>}));
     }
     else if constexpr(auto constexpr number = parse_integer<i>(line)) {
         auto constexpr result = *number;
-        return ParseResult{i + result.length + result.sign, Int<result.value>};
+        return parse<i + result.length + result.sign>(
+                line,
+                std::tuple_cat(es, std::tuple{Int<result.value>}));
     }
-    // else if constexpr() {
-    //}
+    else {
+        auto constexpr endOfToken = next_end_of_token<i>(line);
+        return parse<endOfToken>(
+                line,
+                std::tuple_cat(
+                        es,
+                        std::tuple{Lbl<substring<i, endOfToken>(line)>}));
+    }
 }
 
-auto constexpr p = parse(Line<" -001">);
-#endif    // ELDER_LISP_LEXER_HPP
+template<size_t position = 0>
+auto consteval parse(c_line auto line)
+{
+    auto constexpr i = next_non_whitespace(line, position);
+
+    static_assert(i != line.value.size(), "Reached EOL prematurely");
+
+    if constexpr(line.value[i] == '(') {
+        return make_list_from(parse<i + 1>(line, std::tuple{}));
+    }
+    else if constexpr(line.value[i] == ')') {
+        static_assert(
+                std::is_same_v<decltype(line), void>,
+                "Trying to close a list without one open");
+    }
+    else if constexpr(compare<i>(line, Line<"lambda">)) {
+        return CI<LAMBDA>;
+    }
+    else if constexpr(compare<i>(line, Line<"define">)) {
+        return CI<DEFINE>;
+    }
+    else if constexpr(compare<i>(line, Line<"quote">)) {
+        return CI<QUOTE>;
+    }
+    else if constexpr(compare<i>(line, Line<"atom?">)) {
+        return CI<ATOM>;
+    }
+    else if constexpr(compare<i>(line, Line<"eq?">)) {
+        return CI<EQUAL>;
+    }
+    else if constexpr(compare<i>(line, Line<"car">)) {
+        return CI<FIRST>;
+    }
+    else if constexpr(compare<i>(line, Line<"cdr">)) {
+        return CI<REST>;
+    }
+    else if constexpr(compare<i>(line, Line<"cons">)) {
+        return CI<COMBINE>;
+    }
+    else if constexpr(compare<i>(line, Line<"if">)) {
+        return CI<IF>;
+    }
+    else if constexpr(compare<i>(line, Line<"list">)) {
+        return CI<LIST>;
+    }
+    else if constexpr(compare<i>(line, Line<"*">)) {
+        return CI<MUL>;
+    }
+    else if constexpr(compare<i>(line, Line<"-">)) {
+        return CI<SUB>;
+    }
+    else if constexpr(compare<i>(line, Line<"+">)) {
+        return CI<ADD>;
+    }
+    else if constexpr(compare<i>(line, Line<"/">)) {
+        return CI<DIV>;
+    }
+    else if constexpr(compare<i>(line, Line<"%">)) {
+        return CI<MOD>;
+    }
+    else if constexpr(compare<i>(line, Line<"F">)) {
+        return False;
+    }
+    else if constexpr(compare<i>(line, Line<"T">)) {
+        return True;
+    }
+    else if constexpr(line.value[i] == '\'') {
+        static_assert(
+                i + 2 < line.value.size(),
+                "Trying to construct a character past the end of the string");
+        static_assert(
+                line.value[i + 2] == '\'',
+                "No closing ' character when constructing Char");
+
+        return C<line.value[i + 1]>;
+    }
+    else if constexpr(auto constexpr number = parse_integer<i>(line)) {
+        auto constexpr result = *number;
+        return Int<result.value>;
+    }
+    else {
+        auto constexpr endOfToken = next_end_of_token<i>(line);
+        return Lbl<substring<i, endOfToken>(line)>;
+    }
+}
+
+auto constexpr p = parse(Line<
+        "(define append "
+        "(lambda (left right) "
+            "(if ()))"
+        >);
+#endif    // ELDEiR_LISP_LEXER_HPP

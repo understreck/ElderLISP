@@ -1,6 +1,7 @@
 #ifndef ELDERLISTP_LIST_HPP
 #define ELDERLISTP_LIST_HPP
 
+#include <cstddef>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -87,15 +88,19 @@ concept is_specialisation_of =
 // Label
 template<size_t N>
 struct FixedString : std::array<char, N> {
-    template<size_t... indexes>
+    template<size_t... indices>
     consteval FixedString(
             char const (&str)[N + 1],
-            std::index_sequence<indexes...>) :
-                std::array<char, N>{str[indexes]...}
+            std::index_sequence<indices...>) :
+                std::array<char, N>{str[indices]...}
     {}
 
     consteval FixedString(char const (&str)[N + 1]) :
                 FixedString{str, std::make_index_sequence<N>{}}
+    {}
+
+    template<class... C>
+    constexpr FixedString(C... cs) : std::array<char, N>{cs...}
     {}
 
     constexpr operator std::string_view() const
@@ -106,6 +111,21 @@ struct FixedString : std::array<char, N> {
 
 template<size_t N>
 FixedString(char const (&)[N]) -> FixedString<N - 1>;
+
+template<
+        size_t begin,
+        size_t end,
+        FixedString line,
+        template<auto>
+        class Wrapper>
+auto consteval substring(Wrapper<line>)
+{
+    return []<size_t... indices>(std::index_sequence<indices...>)
+    {
+        return FixedString<end - begin>{line[indices + begin]...};
+    }
+    (std::make_index_sequence<end - begin>{});
+}
 
 template<FixedString string>
 struct LabelT : std::integral_constant<decltype(string), string> {};
