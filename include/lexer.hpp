@@ -48,18 +48,26 @@ auto consteval next_non_whitespace(LineT<line>, size_t position)
 template<size_t start, FixedString line, FixedString token>
 auto consteval compare(LineT<line>, LineT<token>)
 {
-    auto constexpr begin = line.begin() + start;
-    auto constexpr end   = begin + token.size();
-    if(std::string_view{begin, end} == token) {
-        if(line.end() == end) {
-            return true;
+    if constexpr(
+            auto constexpr beyondEnd = (start + token.size()) > line.size()) {
+        return false;
+    }
+    else {
+        auto constexpr begin = line.begin() + start;
+        auto constexpr end   = begin + token.size();
+
+        if(std::string_view{begin, end} == token) {
+            if(end == line.end()) {
+                return true;
+            }
+
+            auto nextChar = *end;
+            return is_whitespace(nextChar) || nextChar == '('
+                   || nextChar == ')';
         }
 
-        auto nextChar = *end;
-        return is_whitespace(nextChar) || nextChar == '(' || nextChar == ')';
+        return false;
     }
-
-    return false;
 }
 
 template<size_t position = 0>
@@ -70,56 +78,65 @@ auto consteval parse(c_line auto line)
     if constexpr(compare<i>(line, Line<"lambda">)) {
         return CI<LAMBDA>;
     }
-    if constexpr(compare<i>(line, Line<"define">)) {
+    else if constexpr(compare<i>(line, Line<"define">)) {
         return CI<DEFINE>;
     }
-    if constexpr(compare<i>(line, Line<"quote">)) {
+    else if constexpr(compare<i>(line, Line<"quote">)) {
         return CI<QUOTE>;
     }
-    if constexpr(compare<i>(line, Line<"atom?">)) {
+    else if constexpr(compare<i>(line, Line<"atom?">)) {
         return CI<ATOM>;
     }
-    if constexpr(compare<i>(line, Line<"eq?">)) {
+    else if constexpr(compare<i>(line, Line<"eq?">)) {
         return CI<EQUAL>;
     }
-    if constexpr(compare<i>(line, Line<"car">)) {
+    else if constexpr(compare<i>(line, Line<"car">)) {
         return CI<FIRST>;
     }
-    if constexpr(compare<i>(line, Line<"cdr">)) {
+    else if constexpr(compare<i>(line, Line<"cdr">)) {
         return CI<REST>;
     }
-    if constexpr(compare<i>(line, Line<"cons">)) {
+    else if constexpr(compare<i>(line, Line<"cons">)) {
         return CI<COMBINE>;
     }
-    if constexpr(compare<i>(line, Line<"if">)) {
+    else if constexpr(compare<i>(line, Line<"if">)) {
         return CI<IF>;
     }
-    if constexpr(compare<i>(line, Line<"list">)) {
+    else if constexpr(compare<i>(line, Line<"list">)) {
         return CI<LIST>;
     }
-    if constexpr(compare<i>(line, Line<"*">)) {
+    else if constexpr(compare<i>(line, Line<"*">)) {
         return CI<MUL>;
     }
-    if constexpr(compare<i>(line, Line<"-">)) {
+    else if constexpr(compare<i>(line, Line<"-">)) {
         return CI<SUB>;
     }
-    if constexpr(compare<i>(line, Line<"+">)) {
+    else if constexpr(compare<i>(line, Line<"+">)) {
         return CI<ADD>;
     }
-    if constexpr(compare<i>(line, Line<"/">)) {
+    else if constexpr(compare<i>(line, Line<"/">)) {
         return CI<DIV>;
     }
-    if constexpr(compare<i>(line, Line<"%">)) {
+    else if constexpr(compare<i>(line, Line<"%">)) {
         return CI<MOD>;
     }
-    // else if constexpr(index == 15) {
-    // auto constexpr m = [match]() {
-    // auto [c0, c1, c2] = match;
-    // return c1;
-    //}();
-    // return Bool<m == ctll::fixed_string{"T"}>;
-    //}
+    else if constexpr(compare<i>(line, Line<"F">)) {
+        return False;
+    }
+    else if constexpr(compare<i>(line, Line<"T">)) {
+        return True;
+    }
+    else if constexpr(line.value[i] == '\'') {
+        static_assert(
+                i + 2 < line.value.size(),
+                "Trying to construct a character past the end of the string");
+        static_assert(
+                line.value[i + 2] == '\'',
+                "No closing ' character when constructing Char");
+
+        return C<line.value[i + 1]>;
+    } 
 }
 
-auto constexpr p = parse(Line<"lambda)">);
+auto constexpr p = parse(Line<"' '">);
 #endif    // ELDER_LISP_LEXER_HPP
