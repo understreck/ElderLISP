@@ -1,6 +1,7 @@
 #ifndef ELDERLISTP_INTERPRETER_HPP
 #define ELDERLISTP_INTERPRETER_HPP
 
+#include "lexer.hpp"
 #include "list.hpp"
 #include "environment.hpp"
 
@@ -24,17 +25,9 @@ auto consteval rest(list auto l)
 }
 
 template<atom_or_list LHS, atom_or_list RHS>
-requires std::equality_comparable_with<LHS, RHS>
-auto consteval equal(LHS lhs, RHS rhs)
+auto consteval equal(LHS, RHS)
 {
-    return Bool<lhs == rhs>;
-}
-
-template<atom_or_list LHS, atom_or_list RHS>
-requires(
-        !std::equality_comparable_with<LHS, RHS>) auto consteval equal(LHS, RHS)
-{
-    return False;
+    return Bool<std::is_same_v<LHS, RHS>>;
 }
 
 auto consteval combine(atom auto lhs, atom_not_nil auto rhs)
