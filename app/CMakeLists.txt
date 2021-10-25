@@ -24,7 +24,8 @@ else()
     target_compile_options(ElderInterp
         PRIVATE -Wall
         PRIVATE -Werror
-        PRIVATE -Wextra)
+        PRIVATE -Wextra
+        PRIVATE -O0)
 endif()
 
 if(WIN32 AND NOT WIN32CONSOLE)
