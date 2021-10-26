@@ -244,7 +244,7 @@ auto consteval evaluate(
                 std::is_same_v<decltype(args), void>,
                 "Incorrect amount of arguments for If");
     }
-    if constexpr(atom<decltype(rest(rest(args)))>) {
+    if constexpr(!nil<decltype(rest(rest(rest(args))))>) {
         static_assert(
                 std::is_same_v<decltype(args), void>,
                 "Ifs arguments need to be NIL terminated");
@@ -271,7 +271,7 @@ auto consteval evaluate(
                 std::is_same_v<decltype(args), void>,
                 "Incorrect amount of arguments for Equal");
     }
-    if constexpr(atom<decltype(rest(args))>) {
+    if constexpr(!nil<decltype(rest(rest(args)))>) {
         static_assert(
                 std::is_same_v<decltype(args), void>,
                 "Equals arguments need to be NIL terminated");
@@ -284,16 +284,34 @@ auto consteval evaluate(
     }
 }
 
+auto consteval evaluate(
+        environment auto env,
+        CoreInstruction<ATOM>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 1) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for Atom");
+    }
+    if constexpr(!nil<decltype(rest(args))>) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Atoms argument needs to be NIL terminated");
+    }
+    else {
+        return std::pair{
+                env,
+                Bool<atom<decltype(evaluate(env, first(args)).second)>>};
+    }
+}
+
 template<list List>
 auto consteval evaluate(
         environment auto env,
         core_instruction auto function,
         List args)
 {
-    else if constexpr(equal(function, CI<ATOM>))
-    {
-        return std::pair{env, atom<decltype(args)>};
-    }
     else if constexpr(equal(function, CI<QUOTE>))
     {
         return std::pair{env, args};
