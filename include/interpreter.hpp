@@ -75,6 +75,11 @@ auto consteval length(nil auto)
     return 0;
 }
 
+auto consteval length(atom_not_nil auto)
+{
+    return 1;
+}
+
 auto consteval length(list_not_nil auto l)
 {
     return 1 + length(rest(l));
@@ -183,103 +188,174 @@ auto consteval evaluate(environment auto env, Atom a)
 
 auto consteval evaluate(
         environment auto env,
-        core_instruction auto function,
-        atom_or_list auto line)
+        CoreInstruction<FIRST>,
+        atom_or_list auto args)
 {
-    if constexpr(equal(function, CI<FIRST>)) {
-        return std::pair{env, first(evaluate(env, line).second)};
+    if constexpr(length(args) != 1) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for First");
     }
-    else if constexpr(equal(function, CI<REST>)) {
-        return std::pair{env, rest(evaluate(env, line).second)};
+    else {
+        return std::pair{env, first(evaluate(env, args).second)};
     }
-    else if constexpr(equal(function, CI<COMBINE>)) {
+}
+
+auto consteval evaluate(
+        environment auto env,
+        CoreInstruction<REST>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 1) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for Rest");
+    }
+    else {
+        return std::pair{env, rest(evaluate(env, args).second)};
+    }
+}
+
+
+auto consteval evaluate(
+        environment auto env,
+        CoreInstruction<COMBINE>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 2) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for Combine");
+    }
+    else {
         return std::pair{
                 env,
-                combine(evaluate(env, first(line)).second,
-                        evaluate(env, rest(line)).second)};
+                combine(evaluate(env, first(args)).second,
+                        evaluate(env, rest(args)).second)};
     }
-    else if constexpr(equal(function, CI<IF>)) {
-        auto predicate = evaluate(env, first(line)).second;
+}
+
+template<list List>
+auto consteval evaluate(
+        environment auto env,
+        core_instruction auto function,
+        List args)
+{
+    else if constexpr(equal(function, CI<COMBINE>))
+    {
+        if constexpr(nil<List>) {
+            static_assert(
+                    std::is_same_v<List, void>,
+                    "Combine needs two arguments");
+        }
+        else {
+            return std::pair{
+                    env,
+                    combine(evaluate(env, first(args)).second,
+                            evaluate(env, rest(args)).second)};
+        }
+    }
+    else if constexpr(equal(function, CI<IF>))
+    {
+        if constexpr(length(args)) {
+            static_assert(
+                    std::is_same_v<List, void>,
+                    "Combine needs two arguments");
+        }
+        else {
+            auto predicate = evaluate(env, first(args)).second;
+            return std::pair{
+                    env,
+                    condition(
+                            env,
+                            predicate,
+                            first(rest(args)),
+                            first(rest(rest(args))))};
+        }
+    }
+    else if constexpr(equal(function, CI<EQUAL>))
+    {
         return std::pair{
                 env,
-                condition(
-                        env,
-                        predicate,
-                        first(rest(line)),
-                        first(rest(rest(line))))};
+                equal(evaluate(env, first(args)).second,
+                      evaluate(env, first(rest(args))).second)};
     }
-    else if constexpr(equal(function, CI<EQUAL>)) {
-        return std::pair{
-                env,
-                equal(evaluate(env, first(line)).second,
-                      evaluate(env, first(rest(line))).second)};
+    else if constexpr(equal(function, CI<ATOM>))
+    {
+        return std::pair{env, atom<decltype(args)>};
     }
-    else if constexpr(equal(function, CI<ATOM>)) {
-        return std::pair{env, atom<decltype(line)>};
+    else if constexpr(equal(function, CI<QUOTE>))
+    {
+        return std::pair{env, args};
     }
-    else if constexpr(equal(function, CI<QUOTE>)) {
-        return std::pair{env, line};
-    }
-    else if constexpr(equal(function, CI<DEFINE>)) {
+    else if constexpr(equal(function, CI<DEFINE>))
+    {
         return define(
                 env,
-                evaluate(env, first(line)).second,
-                evaluate(env, first(rest(line))).second);
+                evaluate(env, first(args)).second,
+                evaluate(env, first(rest(args))).second);
     }
-    else if constexpr(equal(function, CI<LAMBDA>)) {
-        return std::pair{env, lambda(env, line)};
+    else if constexpr(equal(function, CI<LAMBDA>))
+    {
+        return std::pair{env, lambda(env, args)};
     }
-    else if constexpr(equal(function, CI<LIST>)) {
-        return std::pair{env, List(line)};
+    else if constexpr(equal(function, CI<LIST>))
+    {
+        return std::pair{env, List(args)};
     }
-    else if constexpr(equal(function, CI<MUL>)) {
+    else if constexpr(equal(function, CI<MUL>))
+    {
         return std::pair{
                 env,
-                Int<evaluate(env, first(line)).second
-                    * evaluate(env, first(rest(line))).second>};
+                Int<evaluate(env, first(args)).second
+                    * evaluate(env, first(rest(args))).second>};
     }
-    else if constexpr(equal(function, CI<SUB>)) {
+    else if constexpr(equal(function, CI<SUB>))
+    {
         return std::pair{
                 env,
-                Int<evaluate(env, first(line)).second
-                    - evaluate(env, first(rest(line))).second>};
+                Int<evaluate(env, first(args)).second
+                    - evaluate(env, first(rest(args))).second>};
     }
-    else if constexpr(equal(function, CI<ADD>)) {
+    else if constexpr(equal(function, CI<ADD>))
+    {
         return std::pair{
                 env,
-                Int<evaluate(env, first(line)).second
-                    + evaluate(env, first(rest(line))).second>};
+                Int<evaluate(env, first(args)).second
+                    + evaluate(env, first(rest(args))).second>};
     }
-    else if constexpr(equal(function, CI<DIV>)) {
+    else if constexpr(equal(function, CI<DIV>))
+    {
         return std::pair{
                 env,
-                Int<evaluate(env, first(line)).second
-                    / evaluate(env, first(rest(line))).second>};
+                Int<evaluate(env, first(args)).second
+                    / evaluate(env, first(rest(args))).second>};
     }
-    else if constexpr(equal(function, CI<MOD>)) {
+    else if constexpr(equal(function, CI<MOD>))
+    {
         return std::pair{
                 env,
-                Int<evaluate(env, first(line)).second
-                    % evaluate(env, first(rest(line))).second>};
+                Int<evaluate(env, first(args)).second
+                    % evaluate(env, first(rest(args))).second>};
     }
 }
 
 auto consteval evaluate(environment auto env, list_not_nil auto line)
 {
-    auto result = evaluate(env, first(line)).second;
+    auto f = first(line);
 
-    if constexpr(is_core_instruction(result)) {
-        return evaluate(env, result, rest(line));
+    if constexpr(is_core_instruction(f)) {
+        return evaluate(env, f, rest(line));
     }
-    else if constexpr(is_atom(result)) {
-        return std::pair{env, combine(result, rest(line))};
-    }
-    else if constexpr(is_core_instruction(first(result))) {
-        auto newLine = append(result, rest(line));
-        return evaluate(env, first(newLine), rest(newLine));
+    else if(label<decltype(f)>) {
+        auto newLine = append(find(env, f), rest(line));
+        return evaluate(env, newLine);
     }
     else {
-        return std::pair{env, append(result, rest(line))};
+        static_assert(
+                std::is_same_v<decltype(f), void>,
+                "First element of list is not a core instruction");
+        return;
     }
 }
 #endif    // ELDERLISTP_INTERPRETER_HPP
