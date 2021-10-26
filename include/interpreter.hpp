@@ -216,7 +216,6 @@ auto consteval evaluate(
     }
 }
 
-
 auto consteval evaluate(
         environment auto env,
         CoreInstruction<COMBINE>,
@@ -235,44 +234,44 @@ auto consteval evaluate(
     }
 }
 
+auto consteval evaluate(
+        environment auto env,
+        CoreInstruction<IF>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 3) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for If");
+    }
+    else {
+        auto predicate = first(args);
+        auto ifTrue    = first(rest(args));
+
+        if constexpr(atom<decltype(rest(rest(args)))>) {
+            static_assert(
+                    std::is_same_v<decltype(args), void>,
+                    "Ifs arguments need to be NIL terminated");
+        }
+        else {
+            auto ifFalse = first(rest(rest(args)));
+
+            return std::pair{
+                    env,
+                    condition(
+                            evaluate(env, predicate).second,
+                            ifTrue,
+                            ifFalse)};
+        }
+    }
+}
+
 template<list List>
 auto consteval evaluate(
         environment auto env,
         core_instruction auto function,
         List args)
 {
-    else if constexpr(equal(function, CI<COMBINE>))
-    {
-        if constexpr(nil<List>) {
-            static_assert(
-                    std::is_same_v<List, void>,
-                    "Combine needs two arguments");
-        }
-        else {
-            return std::pair{
-                    env,
-                    combine(evaluate(env, first(args)).second,
-                            evaluate(env, rest(args)).second)};
-        }
-    }
-    else if constexpr(equal(function, CI<IF>))
-    {
-        if constexpr(length(args)) {
-            static_assert(
-                    std::is_same_v<List, void>,
-                    "Combine needs two arguments");
-        }
-        else {
-            auto predicate = evaluate(env, first(args)).second;
-            return std::pair{
-                    env,
-                    condition(
-                            env,
-                            predicate,
-                            first(rest(args)),
-                            first(rest(rest(args))))};
-        }
-    }
     else if constexpr(equal(function, CI<EQUAL>))
     {
         return std::pair{
