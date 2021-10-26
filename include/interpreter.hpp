@@ -244,25 +244,43 @@ auto consteval evaluate(
                 std::is_same_v<decltype(args), void>,
                 "Incorrect amount of arguments for If");
     }
+    if constexpr(atom<decltype(rest(rest(args)))>) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Ifs arguments need to be NIL terminated");
+    }
     else {
         auto predicate = first(args);
         auto ifTrue    = first(rest(args));
 
-        if constexpr(atom<decltype(rest(rest(args)))>) {
-            static_assert(
-                    std::is_same_v<decltype(args), void>,
-                    "Ifs arguments need to be NIL terminated");
-        }
-        else {
-            auto ifFalse = first(rest(rest(args)));
+        auto ifFalse = first(rest(rest(args)));
 
-            return std::pair{
-                    env,
-                    condition(
-                            evaluate(env, predicate).second,
-                            ifTrue,
-                            ifFalse)};
-        }
+        return std::pair{
+                env,
+                condition(evaluate(env, predicate).second, ifTrue, ifFalse)};
+    }
+}
+
+auto consteval evaluate(
+        environment auto env,
+        CoreInstruction<EQUAL>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 2) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for Equal");
+    }
+    if constexpr(atom<decltype(rest(args))>) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Equals arguments need to be NIL terminated");
+    }
+    else {
+        return std::pair{
+                env,
+                equal(evaluate(env, first(args)).second,
+                      evaluate(env, first(rest(args))).second)};
     }
 }
 
@@ -272,13 +290,6 @@ auto consteval evaluate(
         core_instruction auto function,
         List args)
 {
-    else if constexpr(equal(function, CI<EQUAL>))
-    {
-        return std::pair{
-                env,
-                equal(evaluate(env, first(args)).second,
-                      evaluate(env, first(rest(args))).second)};
-    }
     else if constexpr(equal(function, CI<ATOM>))
     {
         return std::pair{env, atom<decltype(args)>};
