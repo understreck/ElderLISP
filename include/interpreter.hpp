@@ -102,24 +102,12 @@ auto consteval condition(
         atom_or_list auto ifFalse)
 {
     if constexpr(predicate) {
-        return evaluate(outer, ifTrue).second;
+        return evaluate(outer, ifTrue);
     }
     else {
-        return evaluate(outer, ifFalse).second;
+        return evaluate(outer, ifFalse);
     }
 };
-
-auto consteval define(
-        environment auto env,
-        label auto lbl,
-        atom_or_list auto aol)
-{
-    auto [newEnv, result] = evaluate(env, aol);
-
-    return std::pair{
-            push_kvps(newEnv, std::tuple{KeyValuePair{lbl, result}}),
-            result};
-}
 
 template<label L>
 auto consteval replace(L, atom_or_list auto replacement, L)
@@ -159,12 +147,10 @@ auto consteval lambda(environment auto outer, list_not_nil auto funcExpr)
         auto args     = first(rest(rest(funcExpr)));
 
         auto newBody =
-                replace(first(argNames),
-                        evaluate(outer, first(args)).second,
-                        body);
+                replace(first(argNames), evaluate(outer, first(args)), body);
 
         if constexpr(equal(rest(argNames), NIL)) {
-            return evaluate(outer, newBody).second;
+            return evaluate(outer, newBody);
         }
         else if constexpr(equal(rest(args), NIL)) {
             return List(CI<LAMBDA>, rest(argNames), newBody);
@@ -179,10 +165,10 @@ template<atom Atom>
 auto consteval evaluate(environment auto env, Atom a)
 {
     if constexpr(label<Atom>) {
-        return std::pair{env, find(env, a)};
+        return find(env, a);
     }
     else {
-        return std::pair{env, a};
+        return a;
     }
 }
 
@@ -197,7 +183,7 @@ auto consteval evaluate(
                 "Incorrect amount of arguments for First");
     }
     else {
-        return std::pair{env, first(evaluate(env, args).second)};
+        return first(evaluate(env, args));
     }
 }
 
@@ -212,7 +198,7 @@ auto consteval evaluate(
                 "Incorrect amount of arguments for Rest");
     }
     else {
-        return std::pair{env, rest(evaluate(env, args).second)};
+        return rest(evaluate(env, args));
     }
 }
 
@@ -227,10 +213,7 @@ auto consteval evaluate(
                 "Incorrect amount of arguments for Combine");
     }
     else {
-        return std::pair{
-                env,
-                combine(evaluate(env, first(args)).second,
-                        evaluate(env, rest(args)).second)};
+        return combine(evaluate(env, first(args)), evaluate(env, rest(args)));
     }
 }
 
@@ -255,9 +238,7 @@ auto consteval evaluate(
 
         auto ifFalse = first(rest(rest(args)));
 
-        return std::pair{
-                env,
-                condition(evaluate(env, predicate).second, ifTrue, ifFalse)};
+        return condition(evaluate(env, predicate), ifTrue, ifFalse);
     }
 }
 
@@ -277,10 +258,9 @@ auto consteval evaluate(
                 "Equals arguments need to be NIL terminated");
     }
     else {
-        return std::pair{
-                env,
-                equal(evaluate(env, first(args)).second,
-                      evaluate(env, first(rest(args))).second)};
+        return equal(
+                evaluate(env, first(args)),
+                evaluate(env, first(rest(args))));
     }
 }
 
@@ -294,16 +274,49 @@ auto consteval evaluate(
                 std::is_same_v<decltype(args), void>,
                 "Incorrect amount of arguments for Atom");
     }
-    if constexpr(!nil<decltype(rest(args))>) {
+    else if constexpr(!nil<decltype(rest(args))>) {
         static_assert(
                 std::is_same_v<decltype(args), void>,
                 "Atoms argument needs to be NIL terminated");
     }
     else {
-        return std::pair{
-                env,
-                Bool<atom<decltype(evaluate(env, first(args)).second)>>};
+        return Bool<atom<decltype(evaluate(env, first(args)))>>;
     }
+}
+
+auto consteval evaluate(
+        environment auto /*env*/,
+        CoreInstruction<QUOTE>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 1) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for Quote");
+    }
+    else {
+        return args;
+    }
+}
+
+auto consteval evaluate(
+        environment auto env,
+        CoreInstruction<DEFINE>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 2) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for Define");
+    }
+    else if constexpr(!nil<decltype(rest(args))>) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Defines argument needs to be NIL terminated");
+    } else
+    return std::pair{
+            push_kvps(newEnv, std::tuple{KeyValuePair{lbl, result}}),
+            result};
 }
 
 template<list List>
@@ -312,59 +325,38 @@ auto consteval evaluate(
         core_instruction auto function,
         List args)
 {
-    else if constexpr(equal(function, CI<QUOTE>))
-    {
-        return std::pair{env, args};
-    }
-    else if constexpr(equal(function, CI<DEFINE>))
-    {
-        return define(
-                env,
-                evaluate(env, first(args)).second,
-                evaluate(env, first(rest(args))).second);
-    }
     else if constexpr(equal(function, CI<LAMBDA>))
     {
-        return std::pair{env, lambda(env, args)};
+        return lambda(env, args);
     }
     else if constexpr(equal(function, CI<LIST>))
     {
-        return std::pair{env, List(args)};
+        return List(args);
     }
     else if constexpr(equal(function, CI<MUL>))
     {
-        return std::pair{
-                env,
-                Int<evaluate(env, first(args)).second
-                    * evaluate(env, first(rest(args))).second>};
+        return Int<
+                evaluate(env, first(args)) * evaluate(env, first(rest(args)))>;
     }
     else if constexpr(equal(function, CI<SUB>))
     {
-        return std::pair{
-                env,
-                Int<evaluate(env, first(args)).second
-                    - evaluate(env, first(rest(args))).second>};
+        return Int<
+                evaluate(env, first(args)) - evaluate(env, first(rest(args)))>;
     }
     else if constexpr(equal(function, CI<ADD>))
     {
-        return std::pair{
-                env,
-                Int<evaluate(env, first(args)).second
-                    + evaluate(env, first(rest(args))).second>};
+        return Int<
+                evaluate(env, first(args)) + evaluate(env, first(rest(args)))>;
     }
     else if constexpr(equal(function, CI<DIV>))
     {
-        return std::pair{
-                env,
-                Int<evaluate(env, first(args)).second
-                    / evaluate(env, first(rest(args))).second>};
+        return Int<
+                evaluate(env, first(args)) / evaluate(env, first(rest(args)))>;
     }
     else if constexpr(equal(function, CI<MOD>))
     {
-        return std::pair{
-                env,
-                Int<evaluate(env, first(args)).second
-                    % evaluate(env, first(rest(args))).second>};
+        return Int<
+                evaluate(env, first(args)) % evaluate(env, first(rest(args)))>;
     }
 }
 
@@ -375,10 +367,10 @@ auto consteval evaluate(environment auto env, list_not_nil auto line)
     if constexpr(is_core_instruction(f)) {
         return evaluate(env, f, rest(line));
     }
-    else if(label<decltype(f)>) {
-        auto newLine = append(find(env, f), rest(line));
-        return evaluate(env, newLine);
-    }
+    // else if(label<decltype(f)>) {
+    // auto newLine = append(find(env, f), rest(line));
+    // return evaluate(env, newLine);
+    //}
     else {
         static_assert(
                 std::is_same_v<decltype(f), void>,
