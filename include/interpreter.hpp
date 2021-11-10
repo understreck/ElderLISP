@@ -4,6 +4,7 @@
 #include "lexer.hpp"
 #include "list.hpp"
 #include "environment.hpp"
+#include "procedure.hpp"
 
 #include <type_traits>
 
@@ -128,48 +129,6 @@ auto consteval replace(
     return combine(
             replace(name, replacement, first(body)),
             replace(name, replacement, rest(body)));
-}
-
-template<label ArgName, atom_or_list FBody>
-auto consteval lambda(environment auto, ListT<ArgName, FBody> funcExpr)
-{
-    return combine(CI<LAMBDA>, funcExpr);
-}
-
-auto consteval lambda(environment auto outer, list_not_nil auto funcExpr)
-{
-    if constexpr(length(funcExpr) == 2) {
-        return combine(CI<LAMBDA>, funcExpr);
-    }
-    else if constexpr(length(funcExpr) == 3) {
-        auto argNames = first(funcExpr);
-        auto body     = first(rest(funcExpr));
-        auto args     = first(rest(rest(funcExpr)));
-
-        auto newBody =
-                replace(first(argNames), evaluate(outer, first(args)), body);
-
-        if constexpr(equal(rest(argNames), NIL)) {
-            return evaluate(outer, newBody);
-        }
-        else if constexpr(equal(rest(args), NIL)) {
-            return List(CI<LAMBDA>, rest(argNames), newBody);
-        }
-        else {
-            return lambda(outer, List(rest(argNames), newBody, rest(args)));
-        }
-    }
-}
-
-template<atom Atom>
-auto consteval evaluate(environment auto env, Atom a)
-{
-    if constexpr(label<Atom>) {
-        return find(env, a);
-    }
-    else {
-        return a;
-    }
 }
 
 auto consteval evaluate(
@@ -313,10 +272,11 @@ auto consteval evaluate(
         static_assert(
                 std::is_same_v<decltype(args), void>,
                 "Defines argument needs to be NIL terminated");
-    } else
-    return std::pair{
-            push_kvps(newEnv, std::tuple{KeyValuePair{lbl, result}}),
-            result};
+    }
+    else
+        return std::pair{
+                push_kvps(newEnv, std::tuple{KeyValuePair{lbl, result}}),
+                result};
 }
 
 template<list List>
@@ -374,7 +334,7 @@ auto consteval evaluate(environment auto env, list_not_nil auto line)
     else {
         static_assert(
                 std::is_same_v<decltype(f), void>,
-                "First element of list is not a core instruction");
+                "First element of list is not a core instruction or a procedure");
         return;
     }
 }
