@@ -260,6 +260,26 @@ auto consteval evaluate(
 
 auto consteval evaluate(
         environment auto env,
+        CoreInstruction<LAMBDA>,
+        atom_or_list auto args)
+{
+    if constexpr(length(args) != 2) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Incorrect amount of arguments for Lambda");
+    }
+    else if constexpr(!nil<decltype(rest(rest(args)))>) {
+        static_assert(
+                std::is_same_v<decltype(args), void>,
+                "Lambdas arguments needs to be NIL terminated");
+    }
+    else {
+        return Procedure{env, first(args), first(rest(args))};
+    }
+}
+
+auto consteval evaluate(
+        environment auto env,
         CoreInstruction<DEFINE>,
         atom_or_list auto args)
 {
@@ -268,15 +288,59 @@ auto consteval evaluate(
                 std::is_same_v<decltype(args), void>,
                 "Incorrect amount of arguments for Define");
     }
-    else if constexpr(!nil<decltype(rest(args))>) {
+    else if constexpr(!nil<decltype(rest(rest(args)))>) {
         static_assert(
                 std::is_same_v<decltype(args), void>,
                 "Defines argument needs to be NIL terminated");
     }
-    else
-        return std::pair{
-                push_kvps(newEnv, std::tuple{KeyValuePair{lbl, result}}),
-                result};
+    else {
+        auto name = first(args);
+        static_assert(
+                label<decltype(name)>,
+                "Defines first argument should be a label");
+
+        auto value = first(rest(args));
+        if constexpr(is_atom(value)) {
+            return push_kvps(env, std::tuple{KeyValuePair{name, value}});
+        }
+        else {
+            return push_kvps(
+                    env,
+                    std::tuple{KeyValuePair{name, evaluate(env, value)}});
+        }
+    }
+}
+
+auto consteval make_list(environment auto, atom auto arg)
+{
+    static_assert(
+            std::is_same_v<decltype(arg), void>,
+            "List either takes NIL or a NIL terminated series of arguments");
+
+    return NIL;
+}
+
+auto consteval make_list(environment auto env, list_not_nil auto args)
+{
+    auto value = first(args);
+
+    if constexpr(is_atom(value)) {
+        return combine(value, make_list(env, rest(args)));
+    }
+    else if constexpr(label<decltype(value)>) {
+        return combine(find(env, value), make_list(env, rest(args)));
+    }
+    else {
+        return combine(evaluate(env, value), make_list(rest(args)));
+    }
+}
+
+auto consteval evaluate(
+        environment auto env,
+        CoreInstruction<LIST>,
+        atom_or_list auto args)
+{
+    return make_list(env, args);
 }
 
 template<list List>
@@ -285,36 +349,23 @@ auto consteval evaluate(
         core_instruction auto function,
         List args)
 {
-    else if constexpr(equal(function, CI<LAMBDA>))
-    {
-        return lambda(env, args);
-    }
-    else if constexpr(equal(function, CI<LIST>))
-    {
-        return List(args);
-    }
-    else if constexpr(equal(function, CI<MUL>))
-    {
+    if constexpr(equal(function, CI<MUL>)) {
         return Int<
                 evaluate(env, first(args)) * evaluate(env, first(rest(args)))>;
     }
-    else if constexpr(equal(function, CI<SUB>))
-    {
+    else if constexpr(equal(function, CI<SUB>)) {
         return Int<
                 evaluate(env, first(args)) - evaluate(env, first(rest(args)))>;
     }
-    else if constexpr(equal(function, CI<ADD>))
-    {
+    else if constexpr(equal(function, CI<ADD>)) {
         return Int<
                 evaluate(env, first(args)) + evaluate(env, first(rest(args)))>;
     }
-    else if constexpr(equal(function, CI<DIV>))
-    {
+    else if constexpr(equal(function, CI<DIV>)) {
         return Int<
                 evaluate(env, first(args)) / evaluate(env, first(rest(args)))>;
     }
-    else if constexpr(equal(function, CI<MOD>))
-    {
+    else if constexpr(equal(function, CI<MOD>)) {
         return Int<
                 evaluate(env, first(args)) % evaluate(env, first(rest(args)))>;
     }
@@ -327,10 +378,9 @@ auto consteval evaluate(environment auto env, list_not_nil auto line)
     if constexpr(is_core_instruction(f)) {
         return evaluate(env, f, rest(line));
     }
-    // else if(label<decltype(f)>) {
-    // auto newLine = append(find(env, f), rest(line));
-    // return evaluate(env, newLine);
-    //}
+    else if(procedure<decltype(f)>) {
+        return evaluate(env, f, rest(line));
+    }
     else {
         static_assert(
                 std::is_same_v<decltype(f), void>,

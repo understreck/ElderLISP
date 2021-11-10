@@ -14,12 +14,10 @@ struct Procedure<Env, Args, Body> {
 template<environment Env, list Args, atom_or_list Body>
 Procedure(Env, Args, Body) -> Procedure<Env, Args, Body>;
 
-auto consteval bind_name(procedure auto proc, label auto name)
+template<environment Env, atom_or_list Body>
+auto consteval bind_argument(Procedure<Env, ListT<>, Body>, atom_or_list auto)
 {
-    return Procedure{
-            Environment{KeyValuePair{name, proc}},
-            proc.arguments,
-            proc.body};
+    static_assert(std::is_same_v<Env, void>, "No unbound arguments left");
 }
 
 template<environment Env, class argName, class rest, atom_or_list Body>
