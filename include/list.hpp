@@ -30,12 +30,7 @@ template<CoreInstruction_enum ci>
 struct CoreInstruction : std::integral_constant<CoreInstruction_enum, ci> {};
 
 template<class T>
-concept core_instruction = requires
-{
-    {
-        T::value
-        } -> std::same_as<CoreInstruction_enum>;
-};
+concept core_instruction = std::is_same_v<T, CoreInstruction<T::value>>;
 
 template<CoreInstruction_enum ci>
 auto constexpr CI = CoreInstruction<ci>{};
@@ -45,12 +40,7 @@ template<char c>
 struct Character : std::integral_constant<char, c> {};
 
 template<class T>
-concept character = requires
-{
-    {
-        T::value
-        } -> std::same_as<char>;
-};
+concept character = std::is_same_v<T, Character<T::value>>;
 
 template<char c>
 auto constexpr C = Character<c>{};
@@ -60,12 +50,7 @@ template<int i>
 struct Integer : std::integral_constant<int, i> {};
 
 template<class T>
-concept integer = requires
-{
-    {
-        T::value
-        } -> std::same_as<int>;
-};
+concept integer = std::is_same_v<T, Integer<T::value>>;
 
 template<long i>
 auto constexpr Int = Integer<i>{};
@@ -75,12 +60,7 @@ template<bool b>
 struct Boolean : std::integral_constant<bool, b> {};
 
 template<class T>
-concept boolean = requires
-{
-    {
-        T::value
-        } -> std::same_as<bool>;
-};
+concept boolean = std::is_same_v<T, Boolean<T::value>>;
 
 template<bool b>
 auto constexpr Bool = Boolean<b>{};

@@ -51,8 +51,9 @@ concept has_outer_env = requires(Env env)
     env.outerEnvironment;
 };
 
-template<key_value_pair... KVPs>
-auto consteval push_kvps(environment auto env, std::tuple<KVPs...> kvps)
+template<environment Env, key_value_pair... KVPs>
+requires (!has_outer_env<Env>)
+auto consteval push_kvps(Env env, std::tuple<KVPs...> kvps)
 {
     return Environment{std::tuple_cat(kvps, env.kvps)};
 }

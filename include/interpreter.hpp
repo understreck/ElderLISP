@@ -142,7 +142,7 @@ auto consteval evaluate(
                 "Incorrect amount of arguments for First");
     }
     else {
-        return first(evaluate(env, args));
+        return first(evaluate(env, first(args)));
     }
 }
 
@@ -157,7 +157,7 @@ auto consteval evaluate(
                 "Incorrect amount of arguments for Rest");
     }
     else {
-        return rest(evaluate(env, args));
+        return rest(evaluate(env, first(args)));
     }
 }
 
@@ -172,7 +172,9 @@ auto consteval evaluate(
                 "Incorrect amount of arguments for Combine");
     }
     else {
-        return combine(evaluate(env, first(args)), evaluate(env, rest(args)));
+        return combine(
+                evaluate(env, first(args)),
+                evaluate(env, first(rest(args))));
     }
 }
 
@@ -197,7 +199,7 @@ auto consteval evaluate(
 
         auto ifFalse = first(rest(rest(args)));
 
-        return condition(evaluate(env, predicate), ifTrue, ifFalse);
+        return condition(env, evaluate(env, predicate), ifTrue, ifFalse);
     }
 }
 
@@ -314,7 +316,7 @@ auto consteval evaluate(
 auto consteval make_list(environment auto, atom auto arg)
 {
     static_assert(
-            std::is_same_v<decltype(arg), void>,
+            nil<decltype(arg)>,
             "List either takes NIL or a NIL terminated series of arguments");
 
     return NIL;
@@ -325,13 +327,15 @@ auto consteval make_list(environment auto env, list_not_nil auto args)
     auto value = first(args);
 
     if constexpr(is_atom(value)) {
-        return combine(value, make_list(env, rest(args)));
-    }
-    else if constexpr(label<decltype(value)>) {
-        return combine(find(env, value), make_list(env, rest(args)));
+        if constexpr(label<decltype(value)>) {
+            return combine(find(env, value), make_list(env, rest(args)));
+        }
+        else {
+            return combine(value, make_list(env, rest(args)));
+        }
     }
     else {
-        return combine(evaluate(env, value), make_list(rest(args)));
+        return combine(evaluate(env, value), make_list(env, rest(args)));
     }
 }
 
@@ -341,6 +345,21 @@ auto consteval evaluate(
         atom_or_list auto args)
 {
     return make_list(env, args);
+}
+
+auto consteval evaluate(environment auto env, atom auto arg)
+{
+    if constexpr(is_atom(arg)) {
+        if constexpr(label<decltype(arg)>) {
+            return find(env, arg);
+        }
+        else {
+            return arg;
+        }
+    }
+    else {
+        return evaluate(env, arg);
+    }
 }
 
 template<list List>
@@ -371,14 +390,53 @@ auto consteval evaluate(
     }
 }
 
+auto consteval evaluate(
+        environment auto env,
+        procedure auto proc,
+        atom auto arg)
+{
+    static_assert(
+            nil<decltype(arg)>,
+            "A procedure either takes NIL or"
+            "NIL terminated series of arguments");
+
+    if constexpr(length(proc.arguments) == 0) {
+        return evaluate(
+                push_kvps(push_scope(env), proc.environment.kvps),
+                proc.body);
+    }
+    else {
+        return proc;
+    };
+}
+auto consteval evaluate(
+        environment auto env,
+        procedure auto proc,
+        list_not_nil auto args)
+{
+    auto value = first(args);
+
+    return evaluate(env, bind_argument(proc, evaluate(env, value)), rest(args));
+}
+
+auto consteval find_if_label(environment auto, auto a)
+{
+    return a;
+}
+
+auto consteval find_if_label(environment auto env, label auto l)
+{
+    return find(env, l);
+}
+
 auto consteval evaluate(environment auto env, list_not_nil auto line)
 {
-    auto f = first(line);
+    auto f = find_if_label(env, first(line));
 
     if constexpr(is_core_instruction(f)) {
         return evaluate(env, f, rest(line));
     }
-    else if(procedure<decltype(f)>) {
+    else if constexpr(procedure<decltype(f)>) {
         return evaluate(env, f, rest(line));
     }
     else {
