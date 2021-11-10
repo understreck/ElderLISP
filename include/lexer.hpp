@@ -342,4 +342,4 @@ auto consteval parse(c_line auto line)
         return Lbl<substring<i, endOfToken>(line)>;
     }
 }
-#endif    // ELDEiR_LISP_LEXER_HPP
+#endif    // ELDER_LISP_LEXER_HPP
