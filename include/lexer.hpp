@@ -15,8 +15,6 @@ struct LineT : std::integral_constant<decltype(string), string> {};
 template<FixedString string>
 auto constexpr Line = LineT<string>{};
 
-// auto constexpr l = FixedString{"lambda"};
-
 template<class T>
 struct IsLineT : std::false_type {};
 
