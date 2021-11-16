@@ -23,7 +23,9 @@ enum CoreInstruction_enum {
     SUB,
     ADD,
     DIV,
-    MOD
+    MOD,
+    LESS,
+    GREATER
 };
 
 template<CoreInstruction_enum ci>

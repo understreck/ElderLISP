@@ -185,9 +185,6 @@ auto consteval parse_list(c_line auto line, Els... els)
     else if constexpr(compare<i>(line, Line<"atom?">)) {
         return parse_list<i + 5>(line, els..., CI<ATOM>);
     }
-    else if constexpr(compare<i>(line, Line<"eq?">)) {
-        return parse_list<i + 3>(line, els..., CI<EQUAL>);
-    }
     else if constexpr(compare<i>(line, Line<"car">)) {
         return parse_list<i + 3>(line, els..., CI<FIRST>);
     }
@@ -202,6 +199,15 @@ auto consteval parse_list(c_line auto line, Els... els)
     }
     else if constexpr(compare<i>(line, Line<"list">)) {
         return parse_list<i + 4>(line, els..., CI<LIST>);
+    }
+    else if constexpr(compare<i>(line, Line<"=">)) {
+        return parse_list<i + 1>(line, els..., CI<EQUAL>);
+    }
+    else if constexpr(compare<i>(line, Line<"<">)) {
+        return parse_list<i + 1>(line, els..., CI<LESS>);
+    }
+    else if constexpr(compare<i>(line, Line<">">)) {
+        return parse_list<i + 1>(line, els..., CI<GREATER>);
     }
     else if constexpr(compare<i>(line, Line<"*">)) {
         return parse_list<i + 1>(line, els..., CI<MUL>);
@@ -282,9 +288,6 @@ auto consteval parse(c_line auto line)
     else if constexpr(compare<i>(line, Line<"atom?">)) {
         return CI<ATOM>;
     }
-    else if constexpr(compare<i>(line, Line<"eq?">)) {
-        return CI<EQUAL>;
-    }
     else if constexpr(compare<i>(line, Line<"car">)) {
         return CI<FIRST>;
     }
@@ -299,6 +302,15 @@ auto consteval parse(c_line auto line)
     }
     else if constexpr(compare<i>(line, Line<"list">)) {
         return CI<LIST>;
+    }
+    else if constexpr(compare<i>(line, Line<"=">)) {
+        return CI<EQUAL>;
+    }
+    else if constexpr(compare<i>(line, Line<"<">)) {
+        return CI<LESS>;
+    }
+    else if constexpr(compare<i>(line, Line<">">)) {
+        return CI<GREATER>;
     }
     else if constexpr(compare<i>(line, Line<"*">)) {
         return CI<MUL>;
@@ -340,4 +352,6 @@ auto consteval parse(c_line auto line)
         return Lbl<substring<i, endOfToken>(line)>;
     }
 }
+
+//auto constexpr temp = parse(Line<"=">);
 #endif    // ELDER_LISP_LEXER_HPP

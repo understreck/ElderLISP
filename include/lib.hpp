@@ -4,23 +4,54 @@
 #include "eval_loop.hpp"
 
 namespace lisp {
-auto constexpr nil = eval<"(define nil (list))">(Environment{});
-auto constexpr map =
-        eval<"(define map"
-             "(lambda (f l)"
-             "    (if (eq? nil l)"
-             "        nil"
-             "        (cons"
-             "            (f (car l))"
-             "            (map f (cdr l))))))">(nil);
+auto constexpr nil = parse(Line<"(define nil (list))">);
+auto constexpr map = parse(Line<"(define map"
+                                "(lambda (f l)"
+                                "    (if (= nil l)"
+                                "        nil"
+                                "        (cons"
+                                "            (f (car l))"
+                                "            (map f (cdr l))))))">);
 auto constexpr foldr =
-        eval<"(define foldr"
-             "(lambda (f last l)"
-             "(if (eq? l nil)"
-             "    last"
-             "    (f (car l) (reduce f last (cdr l))))))">(map);
+        parse(Line<"(define foldr"
+                   "(lambda (f last l)"
+                   "(if (= l nil)"
+                   "    last"
+                   "    (f (car l) (reduce f last (cdr l))))))">);
 
-auto constexpr lib = foldr;
+auto constexpr or_ = parse(Line<"(define or"
+                                "(lambda (a b)"
+                                "(if (= a T)"
+                                "    T"
+                                "    (= b T))))">);
+
+auto constexpr and_ = parse(Line<"(define and"
+                                 "(lambda (a b)"
+                                 "(if (= a T)"
+                                 "    (= b T)"
+                                 "    F )))">);
+
+auto constexpr not_ = parse(Line<"(define not"
+                                 "(lambda (a) (= a F)))">);
+
+auto constexpr lessOrEqual =
+        parse(Line<"(define <="
+                   "(lambda (a b) (or (< a b) (= a b))))">);
+
+auto constexpr greaterOrEqual =
+        parse(Line<"(define >="
+                   "(lambda (a b) (or (> a b) (= a b))))">);
+
+auto constexpr lib =
+        eval(Environment{},
+             nil,
+             map,
+             foldr,
+             or_,
+             and_,
+             not_,
+             lessOrEqual,
+             greaterOrEqual);
 }    // namespace lisp
 
 #endif    // ELDERLISP_EVAL_LOOP_HPP
