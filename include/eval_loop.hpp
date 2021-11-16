@@ -6,12 +6,12 @@
 #include "interpreter.hpp"
 #include "lexer.hpp"
 
-auto consteval repl(environment auto env, c_line auto line)
+auto consteval eval(environment auto env, c_line auto line)
 {
     return evaluate(env, parse(line));
 }
 
-auto consteval repl(
+auto consteval eval(
         environment auto env,
         c_line auto line,
         c_line auto... lines)
@@ -19,19 +19,17 @@ auto consteval repl(
     auto result = evaluate(env, parse(line));
 
     if constexpr(environment<decltype(result)>) {
-        return repl(result, lines...);
+        return eval(result, lines...);
     }
     else {
-        return repl(env, lines...);
+        return eval(env, lines...);
     }
-}
-
-auto consteval repl(c_line auto... lines)
-{
-    return repl(Environment{}, lines...);
 }
 
 template<FixedString... lines>
-auto constexpr eval = repl(Line<lines>...);
+auto consteval eval(environment auto env)
+{
+    return eval(env, Line<lines>...);
+}
 
-#endif //ELDERLISP_EVAL_LOOP_HPP
+#endif    // ELDERLISP_EVAL_LOOP_HPP
