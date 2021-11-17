@@ -353,5 +353,4 @@ auto consteval parse(c_line auto line)
     }
 }
 
-//auto constexpr temp = parse(Line<"=">);
 #endif    // ELDER_LISP_LEXER_HPP

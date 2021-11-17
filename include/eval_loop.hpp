@@ -26,10 +26,4 @@ auto consteval eval(
     }
 }
 
-//template<FixedString... lines>
-//auto consteval eval(environment auto env)
-//{
-    //return eval(env, Line<lines>...);
-//}
-
 #endif    // ELDERLISP_EVAL_LOOP_HPP

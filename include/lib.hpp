@@ -4,20 +4,19 @@
 #include "eval_loop.hpp"
 
 namespace lisp {
-auto constexpr nil = parse(Line<"(define nil (list))">);
-auto constexpr map = parse(Line<"(define map"
+auto constexpr nil   = parse(Line<"(define nil (list))">);
+auto constexpr map   = parse(Line<"(define map"
                                 "(lambda (f l)"
                                 "    (if (= nil l)"
                                 "        nil"
                                 "        (cons"
                                 "            (f (car l))"
                                 "            (map f (cdr l))))))">);
-auto constexpr foldr =
-        parse(Line<"(define foldr"
-                   "(lambda (f last l)"
-                   "(if (= l nil)"
-                   "    last"
-                   "    (f (car l) (reduce f last (cdr l))))))">);
+auto constexpr foldr = parse(Line<"(define foldr"
+                                  "(lambda (f l last)"
+                                  "(if (= l nil)"
+                                  "    last"
+                                  "    (f (car l) (foldr f (cdr l) last)))))">);
 
 auto constexpr or_ = parse(Line<"(define or"
                                 "(lambda (a b)"

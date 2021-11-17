@@ -1,10 +1,11 @@
 #include <iostream>
 #include <variant>
 
-#include "eval_loop.hpp"
+#include "lib.hpp"
+#include "exercisesOne.hpp"
 
 int
 main(int, char**)
 {
-    return defun;
+    return oneTwo;
 }
