@@ -44,14 +44,31 @@ template<char c>
 auto constexpr C = Character<c>{};
 
 // Integer
-template<int i>
-struct Integer : std::integral_constant<int, i> {};
+template<long i>
+struct Integer : std::integral_constant<long, i> {};
 
 template<class T>
 concept integer = std::is_same_v<T, Integer<T::value>>;
 
 template<long i>
 auto constexpr Int = Integer<i>{};
+
+// Rational
+template<long n, long d>
+struct Rational {
+    using Numerator   = Integer<n>;
+    using Denominator = Integer<d>;
+
+    Numerator numerator;
+    Denominator denominator;
+};
+
+template<class T>
+concept rational =
+        std::is_same_v<T, Rational<T::Numerator::value, T::Denominator::value>>;
+
+template<long n, long d>
+auto constexpr Rat = Rational<n, d>{};
 
 // Boolean
 template<bool b>
@@ -101,6 +118,6 @@ concept label = IsLabelT<T>::value;
 
 template<class T>
 concept data_type = core_instruction<T> || character<T> || label<T> || integer<
-        T> || boolean<T>;
+        T> || rational<T> || boolean<T>;
 
 #endif    // ELDERLISP_ATOMIC_TYPES_HPP
