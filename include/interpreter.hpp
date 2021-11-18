@@ -1,12 +1,12 @@
 #ifndef ELDERLISTP_INTERPRETER_HPP
 #define ELDERLISTP_INTERPRETER_HPP
 
+#include <type_traits>
+
 #include "lexer.hpp"
 #include "list.hpp"
 #include "environment.hpp"
 #include "procedure.hpp"
-
-#include <type_traits>
 
 auto consteval evaluate(environment auto, atom_or_list auto...);
 
