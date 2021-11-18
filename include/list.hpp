@@ -14,7 +14,7 @@ template<class...>
 struct ListT;
 
 template<>
-struct ListT<> : std::tuple<> {};
+struct ListT<> {};
 
 auto constexpr NIL = ListT<>{};
 
@@ -52,17 +52,23 @@ template<class... Ts>
 concept atom_or_list_not_nil = ((atom_not_nil<Ts> || list_not_nil<Ts>)&&...);
 
 template<atom_or_list T, atom_or_list U>
-struct ListT<T, U> : std::tuple<T, U> {
-    constexpr ListT(T t, U u) : std::tuple<T, U>{t, u}
+struct ListT<T, U> {
+    T car;
+    U cdr;
+
+    constexpr ListT(T t, U u) : car{t}, cdr{u}
     {}
 
     constexpr ListT() = default;
 };
 
 template<atom_or_list T, atom_or_list U, atom_or_list... Us>
-struct ListT<T, U, Us...> : std::tuple<T, ListT<U, Us...>> {
+struct ListT<T, U, Us...> {
+    T car;
+    ListT<U, Us...> cdr;
+
     constexpr ListT(T t, U u, Us... us) :
-                std::tuple<T, ListT<U, Us...>>{t, ListT<U, Us...>{u, us...}}
+                car{t}, cdr{u, us...}
     {}
 
     constexpr ListT() = default;
