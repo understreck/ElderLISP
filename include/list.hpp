@@ -4,8 +4,10 @@
 #include <cstddef>
 #include <string_view>
 #include <tuple>
-#include <type_traits>
 #include <bit>
+#include <type_traits>
+
+#include "fixed-string.hpp"
 
 // CoreInstruction
 enum CoreInstruction_enum {
@@ -88,47 +90,6 @@ concept is_specialisation_of =
         IsSpecalisationOf<std::remove_cvref_t<T>, U>::value;
 
 // Label
-template<size_t N>
-struct FixedString : std::array<char, N> {
-    template<size_t... indices>
-    consteval FixedString(
-            char const (&str)[N + 1],
-            std::index_sequence<indices...>) :
-                std::array<char, N>{str[indices]...}
-    {}
-
-    consteval FixedString(char const (&str)[N + 1]) :
-                FixedString{str, std::make_index_sequence<N>{}}
-    {}
-
-    template<class... C>
-    constexpr FixedString(C... cs) : std::array<char, N>{cs...}
-    {}
-
-    constexpr operator std::string_view() const
-    {
-        return std::string_view{this->data(), N};
-    }
-};
-
-template<size_t N>
-FixedString(char const (&)[N]) -> FixedString<N - 1>;
-
-template<
-        size_t begin,
-        size_t end,
-        FixedString line,
-        template<auto>
-        class Wrapper>
-auto consteval substring(Wrapper<line>)
-{
-    return []<size_t... indices>(std::index_sequence<indices...>)
-    {
-        return FixedString<end - begin>{line[indices + begin]...};
-    }
-    (std::make_index_sequence<end - begin>{});
-}
-
 template<FixedString string>
 struct LabelT : std::integral_constant<decltype(string), string> {};
 

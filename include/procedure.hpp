@@ -14,9 +14,7 @@ struct Procedure<Env, Args, Body> {
 template<environment Env, list Args, atom_or_list Body>
 Procedure(Env, Args, Body) -> Procedure<Env, Args, Body>;
 
-auto consteval bind_argument(
-        procedure auto proc,
-        atom_or_list auto arg)
+auto consteval bind_argument(procedure auto proc, atom_or_list auto arg)
 {
     return Procedure{
             push_kvps(
