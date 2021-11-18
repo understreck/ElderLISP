@@ -53,6 +53,16 @@ concept integer = std::is_same_v<T, Integer<T::value>>;
 template<long i>
 auto constexpr Int = Integer<i>{};
 
+auto consteval abs(integer auto i)
+{
+    if constexpr(i < 0) {
+        return Int<-i>;
+    }
+    else {
+        return i;
+    }
+}
+
 // Rational
 template<long n, long d>
 struct Rational {
@@ -69,6 +79,11 @@ concept rational =
 
 template<long n, long d>
 auto constexpr Rat = Rational<n, d>{};
+
+auto consteval abs(rational auto r)
+{
+    return Rat<abs(r.numerator).value, abs(r.denominator).value>;
+}
 
 // Boolean
 template<bool b>

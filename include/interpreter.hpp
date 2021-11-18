@@ -279,13 +279,64 @@ auto consteval evaluate(environment auto env, atom auto arg)
     }
 }
 
+template<long denominator = 2>
+auto consteval smallest_common_denominator(
+        integer auto smaller,
+        integer auto larger)
+{
+    if constexpr(denominator < (smaller / 2)) {
+        if constexpr(
+                (smaller % denominator == 0) && (larger % denominator == 0)) {
+            return Int<denominator>;
+        }
+        else {
+            return smallest_common_denominator<denominator + 1>(
+                    smaller,
+                    larger);
+        }
+    }
+    else {
+        return Int<1>;
+    }
+}
+
 auto consteval simplify(rational auto rat)
 {
-    if constexpr(rat.numerator % rat.denominator == 0) {
+    auto constexpr absNum   = abs(rat.numerator);
+    auto constexpr absDenom = abs(rat.denominator);
+
+    if constexpr(absNum % absDenom == 0) {
         return Int<rat.numerator / rat.denominator>;
     }
     else {
-        return rat;
+        auto smaller = [=]() {
+            if constexpr(absNum < absDenom) {
+                return absNum;
+            }
+            else {
+                return absDenom;
+            }
+        }();
+
+        auto larger = [=]() {
+            if constexpr(absNum > absDenom) {
+                return absNum;
+            }
+            else {
+                return absDenom;
+            }
+        }();
+
+        auto smallestDenom = smallest_common_denominator(smaller, larger);
+
+        if constexpr(smallestDenom == 1) {
+            return rat;
+        }
+        else {
+            return simplify(
+                    Rat<rat.numerator / smallestDenom,
+                        rat.denominator / smallestDenom>);
+        }
     }
 }
 
