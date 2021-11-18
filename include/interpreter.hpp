@@ -279,31 +279,81 @@ auto consteval evaluate(environment auto env, atom auto arg)
     }
 }
 
+auto consteval simplify(rational auto rat)
+{
+    if constexpr(rat.numerator % rat.denominator == 0) {
+        return Int<rat.numerator / rat.denominator>;
+    }
+    else {
+        return rat;
+    }
+}
+
+auto consteval to_rational(rational auto i)
+{
+    return i;
+}
+
+auto consteval to_rational(integer auto i)
+{
+    return Rat<i.value, 1>;
+}
+
 template<list List>
 auto consteval evaluate(
         environment auto env,
         core_instruction auto function,
         List args)
 {
-    if constexpr(equal(function, CI<MUL>)) {
-        return Int<
-                evaluate(env, first(args)) * evaluate(env, first(rest(args)))>;
+    auto a = evaluate(env, first(args));
+    auto b = evaluate(env, first(rest(args)));
+
+    using A = decltype(a);
+    using B = decltype(b);
+
+    if constexpr(integer<A> && integer<B>) {
+        if constexpr(equal(function, CI<MUL>)) {
+            return Int<a * b>;
+        }
+        else if constexpr(equal(function, CI<SUB>)) {
+            return Int<a - b>;
+        }
+        else if constexpr(equal(function, CI<ADD>)) {
+            return Int<a + b>;
+        }
+        else if constexpr(equal(function, CI<DIV>)) {
+            return simplify(Rat<a, b>);
+        }
+        else if constexpr(equal(function, CI<MOD>)) {
+            return Int<a % b>;
+        }
     }
-    else if constexpr(equal(function, CI<SUB>)) {
-        return Int<
-                evaluate(env, first(args)) - evaluate(env, first(rest(args)))>;
-    }
-    else if constexpr(equal(function, CI<ADD>)) {
-        return Int<
-                evaluate(env, first(args)) + evaluate(env, first(rest(args)))>;
-    }
-    else if constexpr(equal(function, CI<DIV>)) {
-        return Int<
-                evaluate(env, first(args)) / evaluate(env, first(rest(args)))>;
-    }
-    else if constexpr(equal(function, CI<MOD>)) {
-        return Int<
-                evaluate(env, first(args)) % evaluate(env, first(rest(args)))>;
+    else {
+        auto aRat = to_rational(a);
+        auto bRat = to_rational(b);
+
+        if constexpr(equal(function, CI<MUL>)) {
+            return simplify(
+                    Rat<aRat.numerator * bRat.numerator,
+                        aRat.denominator * bRat.denominator>);
+        }
+        else if constexpr(equal(function, CI<SUB>)) {
+            return simplify(
+                    Rat<(aRat.numerator * bRat.denominator)
+                                - (bRat.numerator * aRat.denominator),
+                        (aRat.denominator * bRat.denominator)>);
+        }
+        else if constexpr(equal(function, CI<ADD>)) {
+            return simplify(
+                    Rat<(aRat.numerator * bRat.denominator)
+                                + (bRat.numerator * aRat.denominator),
+                        (aRat.denominator * bRat.denominator)>);
+        }
+        else if constexpr(equal(function, CI<DIV>)) {
+            return simplify(
+                    Rat<aRat.numerator * bRat.denominator,
+                        aRat.denominator * bRat.numerator>);
+        }
     }
 }
 
