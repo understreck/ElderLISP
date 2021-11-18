@@ -21,6 +21,9 @@ concept key_value_pair = (is_specialisation_of<Ts, KeyValuePair> && ...);
 template<class...>
 struct Environment;
 
+template<class T>
+concept environment = is_specialisation_of<T, Environment>;
+
 template<key_value_pair... KVPs>
 struct Environment<KVPs...> {
     std::tuple<KVPs...> kvps;
@@ -32,64 +35,59 @@ Environment(KVPs...) -> Environment<KVPs...>;
 template<key_value_pair... KVPs>
 Environment(std::tuple<KVPs...>) -> Environment<KVPs...>;
 
-template<class Env, key_value_pair... KVPs>
-requires is_specialisation_of<Env, Environment>
+template<environment Env, key_value_pair... KVPs>
 struct Environment<Env, KVPs...> {
+    Env parent;
     std::tuple<KVPs...> kvps;
-    Env outerEnvironment;
 };
 
-template<class T>
-concept environment = is_specialisation_of<T, Environment>;
-
 template<environment Env, key_value_pair... KVPs>
-Environment(std::tuple<KVPs...>, Env) -> Environment<Env, KVPs...>;
+Environment(Env, std::tuple<KVPs...>) -> Environment<Env, KVPs...>;
 
 template<class Env>
-concept has_outer_env = requires(Env env)
+concept has_parent = requires(Env env)
 {
-    env.outerEnvironment;
+    env.parent;
 };
 
-template<environment Env, key_value_pair... KVPs>
-requires (!has_outer_env<Env>)
-auto consteval push_kvps(Env env, std::tuple<KVPs...> kvps)
+template<environment Env>
+requires(!has_parent<Env>) auto consteval push_kvp(
+        Env env,
+        key_value_pair auto kvp)
 {
-    return Environment{std::tuple_cat(kvps, env.kvps)};
+    return Environment{std::tuple_cat(std::tuple{kvp}, env.kvps)};
 }
 
-template<environment Env, key_value_pair... KVPs>
-requires has_outer_env<Env>
-auto consteval push_kvps(Env env, std::tuple<KVPs...> kvps)
+template<environment Env>
+requires has_parent<Env>
+auto consteval push_kvp(Env env, key_value_pair auto kvp)
 {
-    return Environment{std::tuple_cat(kvps, env.kvps), env.outerEnvironment};
+    return Environment{env, std::tuple_cat(std::tuple{kvp}, env.kvps)};
 }
 
 template<environment Env>
 auto consteval push_scope(Env outer)
 {
-    return Environment{{}, outer};
+    return Environment{outer, {}};
 }
 
 template<environment Env>
 auto consteval pop_scope(Env inner)
 {
-    static_assert(has_outer_env<Env>, "Needs an outerEnvironment");
+    static_assert(has_parent<Env>, "Needs a parent Environment");
 
-    return inner.outerEnvironment;
+    return inner.parent;
 }
 
-template<size_t i, key_value_pair... KVPs>
-auto consteval find_impl(std::tuple<KVPs...> kvps, label auto key)
+template<size_t index = 0, key_value_pair... KVPs>
+auto consteval find(std::tuple<KVPs...> kvps, label auto key)
 {
-    if constexpr(i < sizeof...(KVPs)) {
-        auto kvp = std::get<i>(kvps);
-
-        if constexpr(std::is_same_v<decltype(kvp.key), decltype(key)>) {
-            return kvp.value;
+    if constexpr(index < sizeof...(KVPs)) {
+        if constexpr(equal(std::get<index>(kvps).key, key)) {
+            return std::get<index>(kvps).value;
         }
         else {
-            return find_impl<i + 1>(kvps, key);
+            return find<index + 1>(kvps, key);
         }
     }
     else {
@@ -97,44 +95,21 @@ auto consteval find_impl(std::tuple<KVPs...> kvps, label auto key)
     }
 }
 
-template<key_value_pair... KVPs>
-auto consteval find_impl(std::tuple<KVPs...> kvps, label auto key)
-{
-    return find_impl<0>(kvps, key);
-}
-
 template<environment Env>
-requires(!has_outer_env<Env>) auto consteval find_impl(Env env, label auto key)
+auto consteval find(Env env, label auto key)
 {
-    auto value = find_impl(env.kvps, key);
-    // static_assert(
-    //! std::is_same_v<decltype(value), decltype(key)>,
-    //"Key is not found in this environment");
+    auto value = find(env.kvps, key);
 
-    return value;
-}
-
-template<environment Env>
-requires has_outer_env<Env>
-auto consteval find_impl(Env env, label auto key)
-{
-    auto value = find_impl(env.kvps, key);
-
-    if constexpr(std::is_same_v<decltype(value), decltype(key)>) {
-        return find_impl(env.outerEnvironment, key);
+    if constexpr(equal(value, key)) {
+        if constexpr(has_parent<Env>) {
+            return find(env.parent, key);
+        }
+        else {
+            return key;
+        }
     }
     else {
         return value;
     }
-}
-
-auto consteval find(environment auto env, label auto key)
-{
-    auto value = find_impl(env, key);
-    // static_assert(
-    //! std::is_same_v<decltype(value), decltype(key)>,
-    //"Could not find key in environment");
-
-    return value;
 }
 #endif    // ELDERLISTP_ENVIRONMENT_HPP

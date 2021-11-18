@@ -3,8 +3,6 @@
 
 #include <cstddef>
 #include <string_view>
-#include <tuple>
-#include <bit>
 #include <type_traits>
 
 #include "fixed-string.hpp"
@@ -51,7 +49,7 @@ concept atom_or_list = ((atom<Ts> || list<Ts>)&&...);
 template<class... Ts>
 concept atom_or_list_not_nil = ((atom_not_nil<Ts> || list_not_nil<Ts>)&&...);
 
-template<atom_or_list T, atom_or_list U>
+template<class T, class U>
 struct ListT<T, U> {
     T car;
     U cdr;
@@ -62,7 +60,7 @@ struct ListT<T, U> {
     constexpr ListT() = default;
 };
 
-template<atom_or_list T, atom_or_list U, atom_or_list... Us>
+template<class T, class U, class... Us>
 struct ListT<T, U, Us...> {
     T car;
     ListT<U, Us...> cdr;

@@ -17,9 +17,7 @@ Procedure(Env, Args, Body) -> Procedure<Env, Args, Body>;
 auto consteval bind_argument(procedure auto proc, atom_or_list auto arg)
 {
     return Procedure{
-            push_kvps(
-                    proc.environment,
-                    std::tuple{KeyValuePair{proc.arguments.car, arg}}),
+            push_kvp(proc.environment, KeyValuePair{proc.arguments.car, arg}),
             proc.arguments.cdr,
             proc.body};
 }

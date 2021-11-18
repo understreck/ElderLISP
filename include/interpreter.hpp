@@ -222,12 +222,10 @@ auto consteval evaluate(
 
         auto value = first(rest(args));
         if constexpr(is_atom(value)) {
-            return push_kvps(env, std::tuple{KeyValuePair{name, value}});
+            return push_kvp(env, KeyValuePair{name, value});
         }
         else {
-            return push_kvps(
-                    env,
-                    std::tuple{KeyValuePair{name, evaluate(env, value)}});
+            return push_kvp(env, KeyValuePair{name, evaluate(env, value)});
         }
     }
 }
@@ -320,9 +318,7 @@ auto consteval evaluate(
             "NIL terminated series of arguments");
 
     if constexpr(length(proc.arguments) == 0) {
-        return evaluate(
-                push_kvps(push_scope(env), proc.environment.kvps),
-                proc.body);
+        return evaluate(Environment{env, proc.environment.kvps}, proc.body);
     }
     else {
         return proc;

@@ -14,13 +14,13 @@ auto consteval rest(list_not_nil auto l)
     return l.cdr;
 }
 
-template<atom_or_list LHS, atom_or_list RHS>
+template<class LHS, class RHS>
 auto consteval equal(LHS, RHS)
 {
     return Bool<std::is_same_v<LHS, RHS>>;
 }
 
-auto consteval combine(atom_or_list auto lhs, atom_or_list auto rhs)
+auto consteval combine(auto lhs, auto rhs)
 {
     return ListT{lhs, rhs};
 }
@@ -30,7 +30,7 @@ auto consteval length(nil auto)
     return 0;
 }
 
-auto consteval length(atom_not_nil auto)
+auto consteval length(auto)
 {
     return 1;
 }
