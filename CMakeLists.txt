@@ -28,6 +28,8 @@ option(WIN32CONSOLE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 file(TOUCH ${CMAKE_BINARY_DIR}/compile_commands.json)
+
+file(TOUCH ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json)
 file(REMOVE ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json)
 
 configure_file(${CMAKE_BINARY_DIR}/compile_commands.json 
@@ -62,7 +64,10 @@ add_library(ctre::ctre IMPORTED INTERFACE)
 target_include_directories(ctre::ctre
     INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/extern/ctre/include)
 
-#---------------------------APP_NAME-------------------------------------------
+#---------------------------SRC------------------------------------------------
+add_subdirectory(src)
+
+#---------------------------APP------------------------------------------------
 add_subdirectory(app)
 
 #---------------------------tests----------------------------------------------

@@ -9,15 +9,8 @@ set_target_properties(tests
         CXX_STANDARD_REQUIRED TRUE)
 
 target_link_libraries(tests
-    PRIVATE Catch2::Catch2)
-
-if(BUILD_SHARED_LIBS)
-    target_link_libraries(tests
-        PRIVATE ElderLISP::shared)
-else()
-    target_link_libraries(tests
-        PRIVATE ElderLISP::static)
-endif()
+    PRIVATE Catch2::Catch2
+    PRIVATE ElderLISP::LIB)
 
 string(CONCAT GCOVR_CALL
     "gcovr -r ${PROJECT_SOURCE_DIR}/lib "
