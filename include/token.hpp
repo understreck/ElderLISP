@@ -1,4 +1,6 @@
 #ifndef ELDERLISP_TOKEN_HPP
 #define ELDERLISP_TOKEN_HPP
 
+
+
 #endif //ELDERLISP_TOKEN_HPP
