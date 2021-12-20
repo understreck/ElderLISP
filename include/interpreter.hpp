@@ -28,7 +28,8 @@ equal_impl(Tuple const& args) -> ScalarOrTuple
     return it == args.end();
 }
 
-auto constexpr equal = [](ScalarOrTuple const& args) -> ScalarOrTuple {
+auto constexpr equal = [](Environment const&,
+                          ScalarOrTuple const& args) -> ScalarOrTuple {
     return std::visit([](auto const& args) { return equal_impl(args); }, args);
 };
 
@@ -52,7 +53,8 @@ car_impl(Tuple const& args) -> ScalarOrTuple
     return args[0];
 }
 
-auto constexpr car = [](ScalarOrTuple const& args) -> ScalarOrTuple {
+auto constexpr car = [](Environment const&,
+                        ScalarOrTuple const& args) -> ScalarOrTuple {
     return std::visit([](auto const& args) { return car_impl(args); }, args);
 };
 
@@ -89,11 +91,13 @@ cdr_impl(Tuple const& args) -> ScalarOrTuple
     }();
 }
 
-auto constexpr cdr = [](ScalarOrTuple const& args) -> ScalarOrTuple {
+auto constexpr cdr = [](Environment const&,
+                        ScalarOrTuple const& args) -> ScalarOrTuple {
     return std::visit([](auto const& args) { return cdr_impl(args); }, args);
 };
 
-auto constexpr quote = [](ScalarOrTuple const& args) -> ScalarOrTuple {
+auto constexpr quote = [](Environment const&,
+                          ScalarOrTuple const& args) -> ScalarOrTuple {
     return args;
 };
 
@@ -109,8 +113,20 @@ atom_impl(Tuple const& args) -> ScalarOrTuple
     return args.empty();
 }
 
-auto constexpr atom = [](ScalarOrTuple const& args) -> ScalarOrTuple {
+auto constexpr atom = [](Environment const&,
+                         ScalarOrTuple const& args) -> ScalarOrTuple {
     return std::visit([](auto const& args) { return atom_impl(args); }, args);
+};
+
+
+
+auto constexpr lambda = [](Environment const& global,
+                           ScalarOrTuple const& args) {
+    return std::visit(
+            [&global](ScalarOrTuple const& args) {
+                return lambda_impl(global, args);
+            },
+            args);
 };
 
 }    // namespace el

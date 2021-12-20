@@ -1,7 +1,9 @@
 #ifndef ELDERLISP_AST_HPP
 #define ELDERLISP_AST_HPP
 
+#include <map>
 #include <iostream>
+#include <string>
 #include <variant>
 #include <functional>
 #include <vector>
@@ -16,6 +18,11 @@ struct Function;
 struct NIL {
     friend bool constexpr
     operator==(NIL const&, NIL const&) = default;
+};
+
+struct Name : std::string {
+    friend auto
+    operator<=>(Name const&, Name const&) = default;
 };
 
 struct Rational {
@@ -50,7 +57,7 @@ struct Rational {
     }
 };
 
-using Scalar = std::variant<Rational, long, Function, bool, char, NIL>;
+using Scalar = std::variant<NIL, Name, Rational, long, Function, bool, char>;
 
 struct Tuple : std::vector<std::variant<Scalar, Tuple>> {
     using Base = std::vector<std::variant<Scalar, Tuple>>;
@@ -71,7 +78,9 @@ struct Tuple : std::vector<std::variant<Scalar, Tuple>> {
 
 using ScalarOrTuple = std::variant<Scalar, Tuple>;
 
-using FunctionSig = ScalarOrTuple(ScalarOrTuple);
+struct Environment : std::map<Name, ScalarOrTuple> {};
+
+using FunctionSig = ScalarOrTuple(Environment, ScalarOrTuple);
 
 struct Function : std::function<FunctionSig> {
     friend auto
