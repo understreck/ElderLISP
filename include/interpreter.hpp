@@ -120,7 +120,49 @@ auto constexpr atom = [](Environment const&,
 };
 
 auto
-lambda_impl(Tuple const& args) -> ScalarOrTuple
+interpret_impl(Environment const& global, Scalar const& scalar) -> ScalarOrTuple
+{
+    return std::visit(
+            Overload{
+                    [&](Name const& name) -> ScalarOrTuple {
+                        if(global.contains(name)) {
+                            return global.at(name);
+                        }
+
+                        std::cerr << name << " is an unbound name";
+                        return NIL{};
+                    },
+                    [](auto const& scalar) -> ScalarOrTuple {
+                        return scalar;
+                    }},
+            scalar);
+}
+
+auto
+interpret_impl(Environment& /*global*/, Tuple const&) -> ScalarOrTuple
+{
+    return NIL{};
+}
+
+auto constexpr interpret = [](Environment& global,
+                              ScalarOrTuple const& expression) {
+    return std::visit(
+            [&](auto const& expression) {
+                return interpret_impl(global, expression);
+            },
+            expression);
+};
+
+auto
+lambda_impl(Environment const&, Scalar const&) -> ScalarOrTuple
+{
+    std::cerr << "lambda requires a tuple, not a scalar as arguments";
+
+    return NIL{};
+}
+
+auto
+lambda_impl(Environment const&, Tuple const& args) -> ScalarOrTuple
 {
     if(args.size() < 2) {
         std::cerr << "lambda requires a list of unbound names and"
@@ -128,18 +170,61 @@ lambda_impl(Tuple const& args) -> ScalarOrTuple
         return NIL{};
     }
 
-    if(args[0].index() == variantIndex<ScalarOrTuple, Tuple>) {
+    using indexer = TypeIndexer<ScalarOrTuple>;
+
+    if(args[0].index() == indexer::value<Scalar>) {
+        std::cerr << "lambda requires the first argument to be"
+                     " a list of unbound names";
+
+        return NIL{};
     }
 
-    return [unboundNames = args[0]]()
+    using scalarIndexer = TypeIndexer<Scalar>;
+
+    auto const& unboundNames = std::get<Tuple>(args[0]);
+    for(auto&& nameSOT : unboundNames) {
+        if(auto const& name = nameSOT;
+           nameSOT.index() == indexer::value<Scalar>) {
+            if(name.index() != scalarIndexer::value<Name>) {
+                std::cerr << "Unbound arguments list where not all names";
+
+                return NIL{};
+            }
+        }
+    }
+
+    return el::Function{
+            [unboundNames = std::get<Tuple>(args[0]), function = args[1]](
+                    Environment const& global,
+                    ScalarOrTuple const& args) -> ScalarOrTuple {
+                if(args.index() == indexer::value<Scalar>) {
+                    std::cerr
+                            << "All functions take a list of arguments, not a scalar";
+
+                    return NIL{};
+                }
+
+                Tuple const& argList = std::get<Tuple>(args);
+
+                if(unboundNames.size() != argList.size()) {
+                    std::cerr << "Number of arguments do not match function";
+
+                    return NIL{};
+                }
+
+                auto local = global;
+                for(auto i = 0ul; i < unboundNames.size(); i++) {
+                    local[std::get<Name>(std::get<Scalar>(unboundNames[i]))] =
+                            argList[i];
+                }
+
+                return interpret(local, function);
+            }};
 }
 
-auto constexpr lambda = [](Environment const& global,
-                           ScalarOrTuple const& args) {
+auto constexpr lambda = [](Environment const& global, ScalarOrTuple const& args) {
     return std::visit(
-            [&global](ScalarOrTuple const& args) {
-                return lambda_impl(global, args);
-            },
+            [&](auto const& args) { return lambda_impl(global, args); },
             args);
 };
 

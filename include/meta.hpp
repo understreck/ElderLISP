@@ -51,6 +51,14 @@ struct TypeIndexer<Variant<Ts...>> :
                           Ts...>::template type<I>());
 };
 
+template<class... OverloadSet>
+struct Overload : OverloadSet... {
+    using OverloadSet::operator()...;
+};
+
+template<class... OverloadSet>
+Overload(OverloadSet...) -> Overload<OverloadSet...>;
+
 }    // namespace el
 
 #endif    // ELDERLISP_META_HPP
