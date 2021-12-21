@@ -17,6 +17,9 @@ struct TypeIndex {
     {
         return Index;
     }
+
+    template<size_t I>
+    requires(I == Index) static auto constexpr type() -> T;
 };
 
 template<class IndexSequence, class... TypeList>
@@ -26,6 +29,7 @@ template<std::size_t... Indices, class... TypeList>
 struct TypeIndexer_impl<std::index_sequence<Indices...>, TypeList...> :
             TypeIndex<Indices, TypeList>... {
     using TypeIndex<Indices, TypeList>::value...;
+    using TypeIndex<Indices, TypeList>::type...;
 };
 
 template<template<class...> class Variant, class U = void>
@@ -34,8 +38,17 @@ struct TypeIndexer;
 template<template<class...> class Variant, class... Ts>
 struct TypeIndexer<Variant, Variant<Ts...>> :
             TypeIndexer_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...> {
-    using TypeIndexer_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...>::
-            value;
+    template<class T>
+    static auto constexpr value =
+            TypeIndexer_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...>::
+                    template value<T>();
+
+    static auto constexpr size = sizeof...(Ts);
+
+    template<size_t I>
+    using type = decltype(TypeIndexer_impl<
+                          std::make_index_sequence<sizeof...(Ts)>,
+                          Ts...>::template type<I>());
 };
 
 }    // namespace el
