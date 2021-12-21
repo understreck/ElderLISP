@@ -32,11 +32,11 @@ struct TypeIndexer_impl<std::index_sequence<Indices...>, TypeList...> :
     using TypeIndex<Indices, TypeList>::type...;
 };
 
-template<template<class...> class Variant, class U = void>
+template<class Variant>
 struct TypeIndexer;
 
 template<template<class...> class Variant, class... Ts>
-struct TypeIndexer<Variant, Variant<Ts...>> :
+struct TypeIndexer<Variant<Ts...>> :
             TypeIndexer_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...> {
     template<class T>
     static auto constexpr value =
