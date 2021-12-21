@@ -1,6 +1,7 @@
 #ifndef ELDERLISP_INTERPRETER_HPP
 #define ELDERLISP_INTERPRETER_HPP
 
+#include "meta.hpp"
 #include "ast.hpp"
 
 namespace el {
@@ -118,7 +119,20 @@ auto constexpr atom = [](Environment const&,
     return std::visit([](auto const& args) { return atom_impl(args); }, args);
 };
 
+auto
+lambda_impl(Tuple const& args) -> ScalarOrTuple
+{
+    if(args.size() < 2) {
+        std::cerr << "lambda requires a list of unbound names and"
+                     " a list containing the function body";
+        return NIL{};
+    }
 
+    if(args[0].index() == variantIndex<ScalarOrTuple, Tuple>) {
+    }
+
+    return [unboundNames = args[0]]()
+}
 
 auto constexpr lambda = [](Environment const& global,
                            ScalarOrTuple const& args) {
