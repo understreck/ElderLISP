@@ -80,7 +80,7 @@ using ScalarOrTuple = std::variant<Scalar, Tuple>;
 
 struct Environment : std::map<Name, ScalarOrTuple> {};
 
-using FunctionSig = ScalarOrTuple(Environment, ScalarOrTuple);
+using FunctionSig = ScalarOrTuple(Environment&, ScalarOrTuple&);
 
 struct Function : std::function<FunctionSig> {
     friend auto
