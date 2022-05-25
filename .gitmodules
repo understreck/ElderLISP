@@ -1,6 +1,6 @@
 [submodule "extern/Catch2"]
-	path = extern/Catch2
+	path = subprojects/Catch2
 	url = https://github.com/catchorg/Catch2.git
 [submodule "extern/ctre"]
-	path = extern/ctre
+	path = subprojects/ctre
 	url = https://github.com/hanickadot/compile-time-regular-expressions.git
