@@ -19,7 +19,6 @@ executable('ElderInterp',
     include_directories: inc,
     dependencies: [ctre_dep],
     build_by_default: true,
-    cpp_pch: ['pch/interp_pch.hpp'],
     cpp_args: ['-Wall', '-Werror'])
 
 configureCompDB = find_program('configure_compilation_database')
