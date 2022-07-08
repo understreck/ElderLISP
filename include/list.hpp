@@ -4,6 +4,7 @@
 #include <deque>
 #include <iostream>
 #include <functional>
+#include <type_traits>
 #include <variant>
 #include <string>
 #include <exception>
@@ -33,6 +34,8 @@ struct Symbol {
     }
 };
 struct NIL {};    // Signifies end of list
+struct T : std::true_type {};
+struct F : std::false_type {};
 
 enum class Builtin {
     QUOTE,
@@ -58,7 +61,7 @@ struct List;
 using Element = std::variant<List, Atomic>;
 
 struct Function : std::function<Element(Element)> {};
-struct Atomic : std::variant<NIL, Data, Builtin, Function> {};
+struct Atomic : std::variant<NIL, T, F, Data, Builtin, Function> {};
 struct List : std::deque<Element> {};
 
 using ArgList = std::deque<Element>;
@@ -180,8 +183,28 @@ auto inline cons(ArgList args) -> Element
     return join(std::move(args));
 }
 
-auto inline atom(List list)
-{}
+auto inline atom(List) -> Element
+{
+    return Atomic{F{}};
+}
+
+auto inline atom(Atomic) -> Element
+{
+    return Atomic{T{}};
+}
+
+auto inline atom(ArgList args) -> Element
+{
+    if(args.size() != 1) {
+        throw std::runtime_error(
+                "atom(ArgList) should only be called w 1 argument, not"
+                + std::to_string(args.size()));
+    }
+
+    return std::visit(
+            [](auto&& e) { return atom(std::move(e)); },
+            std::move(args[0]));
+}
 
 }    // namespace elder
 
