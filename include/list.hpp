@@ -23,7 +23,10 @@
  */
 
 namespace elder {
-struct Data {};    // placeholder type for actual data
+struct Data {
+    friend bool
+    operator==(Data const&, Data const&) = default;
+};    // placeholder type for actual data
 struct Symbol {
     std::string name;
 
@@ -33,7 +36,10 @@ struct Symbol {
         return name;
     }
 };
-struct NIL {};    // Signifies end of list
+struct NIL {
+    friend bool
+    operator==(NIL const&, NIL const&) = default;
+};    // Signifies end of list
 struct T : std::true_type {};
 struct F : std::false_type {};
 
@@ -52,7 +58,7 @@ enum class Builtin {
     FRONT = CAR,
     REST  = CDR,
     JOIN  = CONS,
-    COMP  = EQ
+    EQUAL = EQ
 };
 
 struct Function;
@@ -60,11 +66,21 @@ struct Atomic;
 struct List;
 using Element = std::variant<List, Atomic>;
 
-struct Function : std::function<Element(Element)> {};
+struct Function : std::function<Element(Element)> {
+    friend bool
+    operator==(Function const&, Function const&)
+    {
+        return false;
+    }
+};
 struct Atomic : std::variant<NIL, T, F, Data, Builtin, Function> {};
+
 struct List : std::deque<Element> {};
 
 using ArgList = std::deque<Element>;
+
+auto inline constexpr True  = Atomic{T{}};
+auto inline constexpr False = Atomic{F{}};
 
 auto inline evaluate(Element) -> Element;
 
@@ -185,12 +201,12 @@ auto inline cons(ArgList args) -> Element
 
 auto inline atom(List) -> Element
 {
-    return Atomic{F{}};
+    return False;
 }
 
 auto inline atom(Atomic) -> Element
 {
-    return Atomic{T{}};
+    return True;
 }
 
 auto inline atom(ArgList args) -> Element
@@ -204,6 +220,17 @@ auto inline atom(ArgList args) -> Element
     return std::visit(
             [](auto&& e) { return atom(std::move(e)); },
             std::move(args[0]));
+}
+
+auto inline equal(ArgList args) -> Element
+{
+    if(args.size() != 2) {
+        throw std::runtime_error(
+                "equal/eq(ArgList) should only be called w 2 arguments, not"
+                + std::to_string(args.size()));
+    }
+
+    return args[0] == args[1] ? True : False;
 }
 
 }    // namespace elder
