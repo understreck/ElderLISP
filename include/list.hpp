@@ -417,6 +417,8 @@ evaluate(Definitions& defs, Builtin b, ArgList args) -> Element
     case IF:
         return cond(defs, std::move(args));
     }
+
+    return {};
 }
 
 inline auto

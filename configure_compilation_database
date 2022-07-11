@@ -12,4 +12,7 @@ output_path = os.path.join(
     'compile_commands.json')
 
 # and finally copy the file
-shutil.copyfile(input_path, output_path)
+try:
+    shutil.copyfile(input_path, output_path)
+except:
+    print("Copying compilation database failed")
