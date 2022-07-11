@@ -8,6 +8,7 @@
 #include <variant>
 #include <string>
 #include <exception>
+#include <ranges>
 
 /* Stuff that needs to be implementet
  * quote/"
@@ -23,25 +24,24 @@
  */
 
 namespace elder {
+
+template<class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+
+template<class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
 struct Data {
     friend bool
     operator==(Data const&, Data const&) = default;
 };    // placeholder type for actual data
-struct Symbol {
-    std::string name;
-
-    auto constexpr
-    operator*() const noexcept -> std::string const&
-    {
-        return name;
-    }
-};
+struct Symbol : std::string {};
 struct NIL {
     friend bool
     operator==(NIL const&, NIL const&) = default;
 };    // Signifies end of list
-struct T : std::true_type {};
-struct F : std::false_type {};
 
 enum class Builtin {
     QUOTE,
@@ -53,36 +53,54 @@ enum class Builtin {
     EQ,
     DEF,
     LAMBDA,
-    IF,
+    COND,
 
     FRONT = CAR,
     REST  = CDR,
     JOIN  = CONS,
-    EQUAL = EQ
+    EQUAL = EQ,
+    IF    = COND
 };
 
 struct Function;
 struct Atomic;
 struct List;
-using Element = std::variant<List, Atomic>;
 
-struct Function : std::function<Element(Element)> {
+using Element = std::variant<List, Atomic>;
+using ArgList = std::deque<Element>;
+
+struct Function : std::function<Element(ArgList)> {
     friend bool
     operator==(Function const&, Function const&)
     {
         return false;
     }
 };
-struct Atomic : std::variant<NIL, T, F, Data, Builtin, Function> {};
+struct Atomic : std::variant<NIL, bool, Symbol, Data, Builtin, Function> {};
 
 struct List : std::deque<Element> {};
 
-using ArgList = std::deque<Element>;
+auto inline const True  = Element{Atomic{true}};
+auto inline const False = Element{Atomic{false}};
 
-auto inline constexpr True  = Atomic{T{}};
-auto inline constexpr False = Atomic{F{}};
+struct Definitions : std::deque<std::pair<Symbol, Element>> {};
 
-auto inline evaluate(Element) -> Element;
+auto inline evaluate(Definitions& defs, Symbol const& s) -> Element
+{
+    auto result = std::ranges::find(
+            std::rbegin(defs),
+            std::rend(defs),
+            s,
+            &Definitions::value_type::first);
+
+    if(result == std::rend(defs)) {
+        throw std::runtime_error{"Unbound symbol: " + s};
+    }
+
+    return result->second;
+}
+
+auto inline evaluate(Definitions& defs, Element) -> Element;
 
 auto inline quote(ArgList args) -> Element
 {
@@ -116,14 +134,21 @@ auto inline front(List list) -> Element
     return std::move(list[0]);
 }
 
-auto inline front(Atomic) -> Element
+auto inline front(Definitions& defs, ArgList args) -> Element;
+
+auto inline front(Definitions& defs, Atomic a) -> Element
 {
-    throw std::runtime_error("front/car(Atomic) should never be called");
+    if(std::holds_alternative<Symbol>(a)) {
+        return front(defs, ArgList{evaluate(defs, std::get<Symbol>(a))});
+    }
+
+    throw std::runtime_error(
+            "front/car(Atomic) should never be called wo a symbol");
 
     return Atomic{};
 }
 
-auto inline front(ArgList args) -> Element
+auto inline front(Definitions& defs, ArgList args) -> Element
 {
     if(args.size() != 1) {
         throw std::runtime_error(
@@ -132,13 +157,19 @@ auto inline front(ArgList args) -> Element
     }
 
     return std::visit(
-            [](auto&& e) { return front(std::move(e)); },
+            overloaded{
+                    [&](Atomic&& atomic) {
+                        return front(defs, std::move(atomic));
+                    },
+                    [](List&& list) {
+                        return front(std::move(list));
+                    }},
             std::move(args[0]));
 }
 
-auto inline car(ArgList args) -> Element
+auto inline car(Definitions& defs, ArgList args) -> Element
 {
-    return front(std::move(args));
+    return front(defs, std::move(args));
 }
 
 auto inline rest(List list) -> Element
@@ -158,14 +189,21 @@ auto inline rest(List list) -> Element
     return list;
 }
 
-auto inline rest(Atomic) -> Element
+auto inline rest(Definitions& defs, ArgList args) -> Element;
+
+auto inline rest(Definitions& defs, Atomic a) -> Element
 {
-    throw std::runtime_error("rest/cdr(Atomic) should never be called");
+    if(std::holds_alternative<Symbol>(a)) {
+        return rest(defs, ArgList{evaluate(defs, std::get<Symbol>(a))});
+    }
+
+    throw std::runtime_error(
+            "rest/cdr(Atomic) should never be called wo a Symbol");
 
     return Atomic{};
 }
 
-auto inline rest(ArgList args) -> Element
+auto inline rest(Definitions& defs, ArgList args) -> Element
 {
     if(args.size() != 1) {
         throw std::runtime_error(
@@ -174,13 +212,19 @@ auto inline rest(ArgList args) -> Element
     }
 
     return std::visit(
-            [](auto&& e) { return rest(std::move(e)); },
+            overloaded{
+                    [&](Atomic&& atomic) {
+                        return rest(defs, std::move(atomic));
+                    },
+                    [](List&& list) {
+                        return rest(std::move(list));
+                    }},
             std::move(args[0]));
 }
 
-auto inline cdr(ArgList args) -> Element
+auto inline cdr(Definitions& defs, ArgList args) -> Element
 {
-    return rest(std::move(args));
+    return rest(defs, std::move(args));
 }
 
 auto inline join(ArgList args) -> Element
@@ -199,17 +243,18 @@ auto inline cons(ArgList args) -> Element
     return join(std::move(args));
 }
 
-auto inline atom(List) -> Element
-{
-    return False;
-}
+auto inline atom(Definitions& defs, ArgList args) -> Element;
 
-auto inline atom(Atomic) -> Element
+auto inline atom(Definitions& defs, Atomic a) -> Element
 {
+    if(std::holds_alternative<Symbol>(a)) {
+        return atom(defs, ArgList{evaluate(defs, std::get<Symbol>(a))});
+    }
+
     return True;
 }
 
-auto inline atom(ArgList args) -> Element
+auto inline atom(Definitions& defs, ArgList args) -> Element
 {
     if(args.size() != 1) {
         throw std::runtime_error(
@@ -218,11 +263,15 @@ auto inline atom(ArgList args) -> Element
     }
 
     return std::visit(
-            [](auto&& e) { return atom(std::move(e)); },
+            overloaded{
+                    [&](Atomic&& a) { return atom(defs, std::move(a)); },
+                    [](List&&) -> Element {
+                        return False;
+                    }},
             std::move(args[0]));
 }
 
-auto inline equal(ArgList args) -> Element
+auto inline equal(Definitions& defs, ArgList args) -> Element
 {
     if(args.size() != 2) {
         throw std::runtime_error(
@@ -230,7 +279,107 @@ auto inline equal(ArgList args) -> Element
                 + std::to_string(args.size()));
     }
 
-    return args[0] == args[1] ? True : False;
+    return evaluate(defs, std::move(args[0]))
+                           == evaluate(defs, std::move(args[1]))
+                   ? True
+                   : False;
+}
+
+auto inline cond(Definitions& defs, ArgList args) -> Element
+{
+    if(args.size() != 3) {
+        throw std::runtime_error(
+                "cond/if(ArgList) should only be called w 3 arguments, not"
+                + std::to_string(args.size()));
+    }
+
+    auto result = evaluate(defs, std::move(args[0]));
+    if(result == True) {
+        return evaluate(defs, std::move(args[1]));
+    }
+
+    if(result == False) {
+        return evaluate(defs, std::move(args[2]));
+    }
+
+    throw std::runtime_error(
+            "cond/if(ArgList): first argument is not a conditional");
+
+    return Atomic{};
+}
+
+auto inline def(Definitions& defs, ArgList args)
+{
+    if(args.size() != 2) {
+        throw std::runtime_error{
+                "def(ArgList) should only be called w 2 arguments, not "
+                + std::to_string(args.size())};
+    }
+
+    if(not std::holds_alternative<Atomic>(args[0])
+       || not std::holds_alternative<Symbol>(std::get<Atomic>(args[0]))) {
+        throw std::runtime_error{
+                "def(ArgList): first argument should be a symbol"};
+    }
+
+    auto& name = std::get<Symbol>(std::get<Atomic>(args[0]));
+
+    defs.push_back(
+            std::pair{std::move(name), evaluate(defs, std::move(args[1]))});
+}
+
+auto inline lambda(Definitions& defs, ArgList args) -> Element
+{
+    if(args.size() != 2) {
+        throw std::runtime_error(
+                "lambda(ArgList) should only be called w 2 arguments, not"
+                + std::to_string(args.size()));
+    }
+
+    if(not std::holds_alternative<List>(args[0])) {
+        throw std::runtime_error{
+                "lambda(ArgList): first argument should be a list of symbols (can be empty"};
+    }
+
+    auto argNames = std::vector<Symbol>{};
+    argNames.reserve(std::get<List>(args[0]).size());
+
+    for(auto&& name : std::get<List>(args[0])) {
+        if(std::holds_alternative<Atomic>(name)) {
+            if(std::holds_alternative<Symbol>(std::get<Atomic>(name))) {
+                argNames.push_back(std::get<Symbol>(std::get<Atomic>(name)));
+
+                continue;
+            }
+        }
+
+        throw std::runtime_error{
+                "lambda(ArgList): first argument must be a list of only Symbols"};
+    }
+
+    return Atomic{Function{
+            [defs, argNames = std::move(argNames), body = std::move(args[1])](
+                    ArgList args) -> Element {
+                if(argNames.size() != args.size()) {
+                    throw std::runtime_error{
+                            "lambdas must be called w correct number of arguments"};
+                }
+
+                auto defCopy = defs;
+                for(std::size_t i = 0; i < argNames.size(); i++) {
+                    defCopy.push_back(
+                            std::pair{argNames[i], args[i]});    // args must
+                                                                 // already be
+                                                                 // evaluated
+                                                                 // before the
+                                                                 // function
+                                                                 // being called
+                                                                 // for this to
+                                                                 // work
+                }
+
+                return evaluate(defCopy, body);
+            }}};
 }
 
 }    // namespace elder
