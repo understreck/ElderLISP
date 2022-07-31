@@ -1,13 +1,10 @@
 #include "interpreter.hpp"
+#include "lexer.hpp"
 
 auto
 main() -> int
 {
     using namespace elder;
-    auto defs = Definitions{};
-
-    auto r = evaluate(defs, List{{Atomic{Builtin::LIST}, Atomic{Data{}}}});
-    auto r2 = evaluate(defs, List{{Atomic{Builtin::REST}, r}});
-
-    return std::get<Atomic>(r2).index();
+    auto a = lex::next_token({"   45   "}).first;
+    std::cout << std::get<int>(a);
 }
