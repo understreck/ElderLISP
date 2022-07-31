@@ -10,19 +10,6 @@
 #include <exception>
 #include <ranges>
 
-/* Stuff that needs to be implementet
- * quote/"
- * list
- * car/front
- * cdr/back
- * cons/join
- * atom
- * eq/comp
- * def
- * lambda
- * if
- */
-
 namespace elder {
 
 template<class... Ts>
@@ -99,18 +86,16 @@ auto inline const False = Element{Atomic{false}};
 
 struct Definitions : std::deque<std::pair<Symbol, Element>> {};
 
-auto constexpr inline a = variant_index_v<Builtin, Atomic>;
-
-auto inline evaluate(Definitions& defs, Symbol const& s) -> Element
+auto inline evaluate(Definitions& defs, Symbol const& symbol) -> Element
 {
     auto result = std::ranges::find(
             std::rbegin(defs),
             std::rend(defs),
-            s,
+            symbol,
             &Definitions::value_type::first);
 
     if(result == std::rend(defs)) {
-        throw std::runtime_error{"Unbound symbol: " + s};
+        throw std::runtime_error{"Unbound symbol: " + symbol};
     }
 
     return result->second;
@@ -150,7 +135,7 @@ auto inline front(List list) -> Element
     return std::move(list[0]);
 }
 
-auto inline front(Atomic a) -> Element
+auto inline front(Atomic atom) -> Element
 {
     throw std::runtime_error("front/car(Atomic) should never be called");
 
@@ -167,9 +152,9 @@ auto inline front(Definitions& defs, ArgList args) -> Element
 
     return std::visit(
             overloaded{
-                    [](auto&& e) { return front(std::move(e)); },
-                    [&](Symbol&& s) {
-                        return front(defs, ArgList{evaluate(defs, s)});
+                    [](auto&& element) { return front(std::move(element)); },
+                    [&defs](Symbol&& symbol) {
+                        return front(defs, ArgList{evaluate(defs, symbol)});
                     }},
             std::move(args[0]));
 }
@@ -196,7 +181,7 @@ auto inline rest(List list) -> Element
     return list;
 }
 
-auto inline rest(Atomic a) -> Element
+auto inline rest(Atomic atom) -> Element
 {
     throw std::runtime_error("rest/cdr(Atomic) should never be called");
 
@@ -213,11 +198,11 @@ auto inline rest(Definitions& defs, ArgList args) -> Element
 
     return std::visit(
             overloaded{
-                    [&](Symbol&& s) {
-                        return rest(defs, ArgList{evaluate(defs, s)});
+                    [&defs](Symbol&& symbol) {
+                        return rest(defs, ArgList{evaluate(defs, symbol)});
                     },
-                    [](auto&& e) {
-                        return rest(std::move(e));
+                    [](auto&& element) {
+                        return rest(std::move(element));
                     }},
             std::move(args[0]));
 }
@@ -253,8 +238,8 @@ auto inline atom(Definitions& defs, ArgList args) -> Element
 
     return std::visit(
             overloaded{
-                    [&](Symbol&& s) -> Element {
-                        return atom(defs, ArgList{evaluate(defs, s)});
+                    [&defs](Symbol&& symbol) -> Element {
+                        return atom(defs, ArgList{evaluate(defs, symbol)});
                     },
                     [](Atomic&&) -> Element { return True; },
                     [](List&&) -> Element {
@@ -371,12 +356,16 @@ auto inline lambda(Definitions& defs, ArgList args) -> Element
 }
 
 inline auto
-evaluate(Definitions& defs, Atomic a) -> Element
+evaluate(Definitions& defs, Atomic atom) -> Element
 {
     return std::visit(
             overloaded{
-                    [](auto&& a) -> Element { return Atomic{std::move(a)}; },
-                    [&](Symbol&& s) -> Element { return evaluate(defs, s); },
+                    [](auto&& atom) -> Element {
+                        return Atomic{std::move(atom)};
+                    },
+                    [&defs](Symbol&& symbol) -> Element {
+                        return evaluate(defs, symbol);
+                    },
                     [](Builtin&&) -> Element {
                         throw std::runtime_error{
                                 "evaluate(Builtin) should never be called"};
@@ -387,15 +376,15 @@ evaluate(Definitions& defs, Atomic a) -> Element
                                 "evaluate(Function) should never be called"};
                         return {};
                     }},
-            std::move(a));
+            std::move(atom));
 }
 
 inline auto
-evaluate(Definitions& defs, Builtin b, ArgList args) -> Element
+evaluate(Definitions& defs, Builtin builtin, ArgList args) -> Element
 {
     using enum Builtin;
 
-    switch(b) {
+    switch(builtin) {
     case QUOTE:
         return quote(std::move(args));
     case LIST:
@@ -464,11 +453,13 @@ evaluate(Definitions& defs, List list) -> Element
 }
 
 inline auto
-evaluate(Definitions& defs, Element e) -> Element
+evaluate(Definitions& defs, Element element) -> Element
 {
     return std::visit(
-            [&](auto&& e) { return evaluate(defs, std::move(e)); },
-            std::move(e));
+            [&defs](auto&& element) {
+                return evaluate(defs, std::move(element));
+            },
+            std::move(element));
 }
 
 }    // namespace elder
